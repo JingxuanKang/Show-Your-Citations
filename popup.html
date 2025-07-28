@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN" style="width: 350px; height: 320px;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Google Scholar 引用追踪器</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body {
+      width: 350px;
+      height: 320px;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="mainContainer">
+    <!-- 头部 -->
+    <div class="header">
+      <h1>Scholar Citations</h1>
+      <button id="settingsBtn" class="icon-btn" title="设置">⚙️</button>
+    </div>
+
+    <!-- 主卡片 - 引用数 -->
+    <div class="citation-card main-card">
+      <div class="card-label">总引用数</div>
+      <div id="totalCitations" class="citation-number">--</div>
+      <div class="citation-change" id="citationChange"></div>
+    </div>
+
+    <!-- 次要指标 -->
+    <div class="metrics-row">
+      <div class="citation-card metric-card">
+        <div class="card-label">h-index</div>
+        <div id="hIndex" class="metric-number">--</div>
+      </div>
+      <div class="citation-card metric-card">
+        <div class="card-label">i10-index</div>
+        <div id="i10Index" class="metric-number">--</div>
+      </div>
+    </div>
+
+    <!-- 更新信息 -->
+    <div class="update-info">
+      <span id="lastUpdate">从未更新</span>
+      <button id="refreshBtn" class="refresh-btn" title="立即刷新">🔄</button>
+    </div>
+
+    <!-- 加载状态 -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+      <div class="spinner"></div>
+      <div class="loading-text">获取数据中...</div>
+    </div>
+
+    <!-- 错误提示 -->
+    <div id="errorMsg" class="error-msg hidden"></div>
+
+    <!-- 初次使用提示 -->
+    <div id="setupPrompt" class="setup-prompt hidden">
+      <p>👋 欢迎使用！</p>
+      <p>请先设置您的 Google Scholar ID</p>
+      <button id="setupBtn" class="primary-btn">前往设置</button>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
