@@ -1,0 +1,45 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Node.js
+node_modules/
+npm-debug.log*
+package-lock.json
+
+# Chrome Extension
+*.crx
+*.pem
+*.zip
+
+# Development
+*.log
+*.tmp
+.vscode/
+.idea/
+
+# Test files
+test/
+tests/
+*.test.js
+
+# Temporary files
+*.swp
+*.swo
+*~
+
+# Generated files
+generate-icons.js
+generate-better-icons.js
+create-citation-icon.html
+generate-icons.py
+
+# User-specific files
+使用指南.md
+CLAUDE.md
