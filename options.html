@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>设置 - Google Scholar 引用追踪器</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>⚙️ 设置</h1>
+      <p>配置您的 Google Scholar 信息</p>
+    </header>
+
+    <div class="settings-card">
+      <h2>Scholar 配置</h2>
+      
+      <div class="form-group">
+        <label for="scholarUrl">Google Scholar 个人主页 URL</label>
+        <input type="url" id="scholarUrl" placeholder="https://scholar.google.com/citations?user=XXXXXXX">
+        <small>在 Google Scholar 上打开您的个人主页，复制地址栏中的完整 URL</small>
+      </div>
+
+      <div class="divider">或者</div>
+
+      <div class="form-group">
+        <label for="scholarId">Scholar User ID</label>
+        <input type="text" id="scholarId" placeholder="例如：DhtAFkwAAAAJ">
+        <small>URL 中 user= 后面的字符串</small>
+      </div>
+    </div>
+
+    <div class="settings-card">
+      <h2>代理设置（可选）</h2>
+      
+      <div class="form-group checkbox-group">
+        <label>
+          <input type="checkbox" id="useProxy">
+          <span>使用自定义代理服务器</span>
+        </label>
+        <small>如果您部署了自己的 Cloudflare Worker 或其他代理服务</small>
+      </div>
+
+      <div class="form-group" id="proxyUrlGroup" style="display: none;">
+        <label for="proxyUrl">代理服务器 URL</label>
+        <input type="url" id="proxyUrl" placeholder="https://your-worker.workers.dev">
+        <small>您的 Cloudflare Worker 或代理服务地址</small>
+      </div>
+    </div>
+
+    <div class="settings-card">
+      <h2>通知设置</h2>
+      
+      <div class="form-group checkbox-group">
+        <label>
+          <input type="checkbox" id="enableNotifications" checked>
+          <span>启用桌面通知</span>
+        </label>
+        <small>当引用数增加时显示通知</small>
+      </div>
+
+      <div class="form-group checkbox-group">
+        <label>
+          <input type="checkbox" id="autoUpdate" checked>
+          <span>自动更新数据</span>
+        </label>
+        <small>每6小时自动检查更新</small>
+      </div>
+    </div>
+
+    <div class="button-group">
+      <button id="saveBtn" class="btn btn-primary">保存设置</button>
+      <button id="testBtn" class="btn btn-secondary">测试连接</button>
+    </div>
+
+    <div id="message" class="message hidden"></div>
+
+    <div class="footer">
+      <h3>使用说明</h3>
+      <ol>
+        <li>打开 <a href="https://scholar.google.com" target="_blank">Google Scholar</a></li>
+        <li>搜索并进入您的个人主页</li>
+        <li>复制地址栏中的完整 URL</li>
+        <li>粘贴到上方的输入框中</li>
+        <li>点击"保存设置"</li>
+      </ol>
+      
+      <h3>部署自己的代理（可选）</h3>
+      <p>为了更稳定的访问，您可以部署自己的 Cloudflare Worker：</p>
+      <ol>
+        <li>访问 <a href="https://workers.cloudflare.com" target="_blank">Cloudflare Workers</a></li>
+        <li>创建新的 Worker</li>
+        <li>复制 <code>cloudflare/worker.js</code> 中的代码</li>
+        <li>部署并获取 Worker URL</li>
+        <li>在上方填入 Worker URL</li>
+      </ol>
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
