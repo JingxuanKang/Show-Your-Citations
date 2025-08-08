@@ -154,28 +154,58 @@ async function testConnection() {
       // 首先尝试直接访问
       try {
         console.log('尝试直接访问...');
+        
+        // 添加10秒超时
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        
         response = await fetch(targetUrl, {
           method: 'GET',
+          signal: controller.signal,
           headers: {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36'
           }
         });
         
+        clearTimeout(timeoutId);
+        
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
         }
       } catch (directError) {
-        console.log('直接访问失败，尝试CORS代理...');
+        if (directError.name === 'AbortError') {
+          console.log('直接访问超时，尝试CORS代理...');
+          showMessage('直接连接超时，正在尝试代理...', 'info');
+        } else {
+          console.log('直接访问失败，尝试CORS代理...');
+        }
+        
         // 如果直接访问失败，尝试CORS代理
         const corsProxy = 'https://cors-anywhere.herokuapp.com/';
         const testUrl = corsProxy + encodeURIComponent(targetUrl);
-        response = await fetch(testUrl, {
-          method: 'GET',
-          headers: {
-            'Accept': 'text/html'
+        
+        const proxyController = new AbortController();
+        const proxyTimeoutId = setTimeout(() => proxyController.abort(), 10000);
+        
+        try {
+          response = await fetch(testUrl, {
+            method: 'GET',
+            signal: proxyController.signal,
+            headers: {
+              'Accept': 'text/html'
+            }
+          });
+          clearTimeout(proxyTimeoutId);
+        } catch (proxyError) {
+          clearTimeout(proxyTimeoutId);
+          if (proxyError.name === 'AbortError') {
+            showMessage('连接超时（10秒）。请使用VPN或部署自己的Cloudflare Worker', 'error');
+          } else {
+            showMessage('无法连接到Google Scholar。请检查网络或使用VPN', 'error');
           }
-        });
+          return;
+        }
       }
     }
     
@@ -200,7 +230,11 @@ async function testConnection() {
     
   } catch (error) {
     console.error('测试连接失败:', error);
-    showMessage(`连接失败：${error.message}`, 'error');
+    if (error.name === 'AbortError') {
+      showMessage('连接超时。建议使用VPN或部署Cloudflare Worker', 'error');
+    } else {
+      showMessage(`连接失败：${error.message}`, 'error');
+    }
   }
 }
 

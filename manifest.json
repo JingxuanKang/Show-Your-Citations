@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Show Your Citations",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Real-time Google Scholar citation tracker with beautiful UI",
   "permissions": [
     "storage",

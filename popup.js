@@ -150,7 +150,12 @@ async function fetchCitations(force = false, silent = false) {
   } catch (error) {
     console.error('获取引用数据失败:', error);
     if (!silent) {
-      showError('获取数据失败，请检查网络或稍后重试');
+      // 提供更详细的错误信息
+      if (error.name === 'AbortError') {
+        showError('连接超时（10秒），请检查网络或使用VPN');
+      } else {
+        showError('无法连接到Google Scholar，请使用VPN或部署Cloudflare Worker');
+      }
     }
   } finally {
     if (!silent) {
@@ -164,14 +169,21 @@ async function fetchDirectly(scholarUrl) {
   try {
     console.log('尝试直接访问 Google Scholar...');
     
+    // 创建超时控制
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
+    
     const response = await fetch(scholarUrl, {
       method: 'GET',
+      signal: controller.signal,
       headers: {
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.5',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       }
     });
+    
+    clearTimeout(timeoutId);
     
     if (response.ok) {
       const html = await response.text();
@@ -185,7 +197,11 @@ async function fetchDirectly(scholarUrl) {
       console.log(`直接访问失败: HTTP ${response.status}`);
     }
   } catch (error) {
-    console.log('直接访问出错:', error.message);
+    if (error.name === 'AbortError') {
+      console.log('直接访问超时（10秒）');
+    } else {
+      console.log('直接访问出错:', error.message);
+    }
   }
   
   return null;
@@ -197,12 +213,19 @@ async function fetchViaPublicProxy(scholarUrl) {
     try {
       console.log(`尝试代理: ${proxy}`);
       
+      // 创建超时控制
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
+      
       const response = await fetch(proxy + encodeURIComponent(scholarUrl), {
         method: 'GET',
+        signal: controller.signal,
         headers: {
           'Accept': 'text/html',
         }
       });
+      
+      clearTimeout(timeoutId);
       
       if (response.ok) {
         const html = await response.text();
@@ -214,7 +237,11 @@ async function fetchViaPublicProxy(scholarUrl) {
         }
       }
     } catch (error) {
-      console.error(`代理失败 ${proxy}:`, error);
+      if (error.name === 'AbortError') {
+        console.error(`代理超时 ${proxy}: 10秒无响应`);
+      } else {
+        console.error(`代理失败 ${proxy}:`, error.message);
+      }
       continue;
     }
   }
