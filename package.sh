@@ -19,7 +19,6 @@ cp options.html $TEMP_DIR/
 cp options.js $TEMP_DIR/
 cp options.css $TEMP_DIR/
 cp -r icons $TEMP_DIR/
-cp -r cloudflare $TEMP_DIR/
 cp README.md $TEMP_DIR/
 cp LICENSE $TEMP_DIR/
 

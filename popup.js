@@ -2,12 +2,6 @@
 
 // 配置
 const CONFIG = {
-  // 可用的CORS代理服务（按优先级排序）
-  corsProxies: [
-    'https://cors-anywhere.herokuapp.com/',
-    'https://api.allorigins.win/raw?url=',
-    'https://corsproxy.io/?'
-  ],
   // 缓存时间（毫秒）
   cacheTime: 3600000, // 1小时
   // Google Scholar基础URL
@@ -106,10 +100,11 @@ async function fetchCitations(force = false, silent = false) {
     }
     
     // 获取用户设置
-    const settings = await chrome.storage.sync.get(['scholarId', 'scholarUrl', 'useProxy', 'useDirectAccess']);
+    const settings = await chrome.storage.sync.get(['scholarId', 'scholarUrl']);
     
     if (!settings.scholarId && !settings.scholarUrl) {
       showSetupPrompt();
+      showLoading(false);  // 停止loading
       return;
     }
     
@@ -121,28 +116,24 @@ async function fetchCitations(force = false, silent = false) {
       scholarUrl = `${CONFIG.scholarBaseUrl}?user=${settings.scholarId}&hl=en`;
     }
     
-    // 尝试获取数据
-    let data = null;
-    
-    // 如果用户部署了自己的代理服务
-    if (settings.useProxy && settings.proxyUrl) {
-      data = await fetchViaCustomProxy(settings.proxyUrl, settings.scholarId);
-    } else if (settings.useDirectAccess !== false) {
-      // 默认先尝试直接访问（适用于已有代理的用户）
-      data = await fetchDirectly(scholarUrl);
-      if (!data) {
-        console.log('直接访问失败，尝试使用CORS代理...');
-        data = await fetchViaPublicProxy(scholarUrl);
-      }
-    } else {
-      // 使用公共CORS代理
-      data = await fetchViaPublicProxy(scholarUrl);
-    }
+    // 直接访问Google Scholar
+    console.log('正在访问 Google Scholar...');
+    const data = await fetchDirectly(scholarUrl);
     
     if (data) {
       // 保存数据
       await saveData(data);
       await displayData(data);
+      hideError(); // 成功时隐藏错误
+      
+      // 成功后也要停止loading
+      if (!silent) {
+        showLoading(false);
+        // 如果是手动刷新，显示成功提示
+        if (force) {
+          showSuccess('数据更新成功！');
+        }
+      }
     } else {
       throw new Error('无法获取数据');
     }
@@ -150,16 +141,18 @@ async function fetchCitations(force = false, silent = false) {
   } catch (error) {
     console.error('获取引用数据失败:', error);
     if (!silent) {
-      // 提供更详细的错误信息
-      if (error.name === 'AbortError') {
-        showError('连接超时（10秒），请检查网络或使用VPN');
-      } else {
-        showError('无法连接到Google Scholar，请使用VPN或部署Cloudflare Worker');
-      }
-    }
-  } finally {
-    if (!silent) {
+      // 停止loading动画
       showLoading(false);
+      
+      // 提供错误信息
+      if (error.name === 'AbortError') {
+        showError('连接超时，请检查网络设置');
+      } else {
+        showError('无法访问 Google Scholar，请检查网络设置');
+      }
+      
+      // 隐藏loading界面，显示错误
+      elements.loadingOverlay.classList.add('hidden');
     }
   }
 }
@@ -171,7 +164,7 @@ async function fetchDirectly(scholarUrl) {
     
     // 创建超时控制
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5秒超时
     
     const response = await fetch(scholarUrl, {
       method: 'GET',
@@ -198,77 +191,15 @@ async function fetchDirectly(scholarUrl) {
     }
   } catch (error) {
     if (error.name === 'AbortError') {
-      console.log('直接访问超时（10秒）');
+      console.log('访问超时（5秒）');
     } else {
-      console.log('直接访问出错:', error.message);
+      console.log('访问出错:', error.message);
     }
   }
   
   return null;
 }
 
-// 通过公共CORS代理获取数据
-async function fetchViaPublicProxy(scholarUrl) {
-  for (const proxy of CONFIG.corsProxies) {
-    try {
-      console.log(`尝试代理: ${proxy}`);
-      
-      // 创建超时控制
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
-      
-      const response = await fetch(proxy + encodeURIComponent(scholarUrl), {
-        method: 'GET',
-        signal: controller.signal,
-        headers: {
-          'Accept': 'text/html',
-        }
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (response.ok) {
-        const html = await response.text();
-        const data = parseScholarHTML(html);
-        
-        if (data.citations) {
-          console.log('成功获取数据:', data);
-          return data;
-        }
-      }
-    } catch (error) {
-      if (error.name === 'AbortError') {
-        console.error(`代理超时 ${proxy}: 10秒无响应`);
-      } else {
-        console.error(`代理失败 ${proxy}:`, error.message);
-      }
-      continue;
-    }
-  }
-  
-  return null;
-}
-
-// 通过自定义代理获取数据
-async function fetchViaCustomProxy(proxyUrl, scholarId) {
-  try {
-    const response = await fetch(`${proxyUrl}?user=${scholarId}`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      }
-    });
-    
-    if (response.ok) {
-      const data = await response.json();
-      return data;
-    }
-  } catch (error) {
-    console.error('自定义代理失败:', error);
-  }
-  
-  return null;
-}
 
 // 解析Google Scholar HTML
 function parseScholarHTML(html) {
@@ -479,8 +410,32 @@ function showLoading(show) {
 }
 
 function showError(message) {
+  // 支持多行错误信息
+  if (message.includes('\n')) {
+    elements.errorMsg.innerHTML = message.split('\n').join('<br>');
+  } else {
+    elements.errorMsg.textContent = message;
+  }
+  elements.errorMsg.classList.remove('hidden');
+  elements.errorMsg.classList.remove('success');
+  elements.errorMsg.classList.add('error');
+  
+  // 确保loading停止
+  showLoading(false);
+}
+
+function showSuccess(message) {
   elements.errorMsg.textContent = message;
   elements.errorMsg.classList.remove('hidden');
+  elements.errorMsg.classList.remove('error');
+  elements.errorMsg.classList.add('success');
+  
+  // 3秒后自动隐藏成功消息
+  setTimeout(() => {
+    if (elements.errorMsg.classList.contains('success')) {
+      elements.errorMsg.classList.add('hidden');
+    }
+  }, 3000);
 }
 
 function hideError() {

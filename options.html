@@ -31,23 +31,6 @@
       </div>
     </div>
 
-    <div class="settings-card">
-      <h2>代理设置（可选）</h2>
-      
-      <div class="form-group checkbox-group">
-        <label>
-          <input type="checkbox" id="useProxy">
-          <span>使用自定义代理服务器</span>
-        </label>
-        <small>如果您部署了自己的 Cloudflare Worker 或其他代理服务</small>
-      </div>
-
-      <div class="form-group" id="proxyUrlGroup" style="display: none;">
-        <label for="proxyUrl">代理服务器 URL</label>
-        <input type="url" id="proxyUrl" placeholder="https://your-worker.workers.dev">
-        <small>您的 Cloudflare Worker 或代理服务地址</small>
-      </div>
-    </div>
 
     <div class="settings-card">
       <h2>通知设置</h2>
@@ -84,16 +67,6 @@
         <li>复制地址栏中的完整 URL</li>
         <li>粘贴到上方的输入框中</li>
         <li>点击"保存设置"</li>
-      </ol>
-      
-      <h3>部署自己的代理（可选）</h3>
-      <p>为了更稳定的访问，您可以部署自己的 Cloudflare Worker：</p>
-      <ol>
-        <li>访问 <a href="https://workers.cloudflare.com" target="_blank">Cloudflare Workers</a></li>
-        <li>创建新的 Worker</li>
-        <li>复制 <code>cloudflare/worker.js</code> 中的代码</li>
-        <li>部署并获取 Worker URL</li>
-        <li>在上方填入 Worker URL</li>
       </ol>
     </div>
   </div>

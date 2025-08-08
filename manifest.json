@@ -1,17 +1,14 @@
 {
   "manifest_version": 3,
   "name": "Show Your Citations",
-  "version": "1.0.1",
+  "version": "1.1.2",
   "description": "Real-time Google Scholar citation tracker with beautiful UI",
   "permissions": [
     "storage",
     "alarms"
   ],
   "host_permissions": [
-    "https://scholar.google.com/*",
-    "https://*.herokuapp.com/*",
-    "https://*.workers.dev/*",
-    "https://*.vercel.app/*"
+    "https://scholar.google.com/*"
   ],
   "background": {
     "service_worker": "background.js"

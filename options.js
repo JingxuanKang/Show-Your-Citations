@@ -4,9 +4,6 @@
 const elements = {
   scholarUrl: document.getElementById('scholarUrl'),
   scholarId: document.getElementById('scholarId'),
-  useProxy: document.getElementById('useProxy'),
-  proxyUrl: document.getElementById('proxyUrl'),
-  proxyUrlGroup: document.getElementById('proxyUrlGroup'),
   enableNotifications: document.getElementById('enableNotifications'),
   autoUpdate: document.getElementById('autoUpdate'),
   saveBtn: document.getElementById('saveBtn'),
@@ -26,8 +23,6 @@ async function loadSettings() {
     const settings = await chrome.storage.sync.get([
       'scholarUrl',
       'scholarId',
-      'useProxy',
-      'proxyUrl',
       'enableNotifications',
       'autoUpdate'
     ]);
@@ -40,13 +35,8 @@ async function loadSettings() {
       elements.scholarId.value = settings.scholarId;
     }
     
-    elements.useProxy.checked = settings.useProxy || false;
-    elements.proxyUrl.value = settings.proxyUrl || '';
     elements.enableNotifications.checked = settings.enableNotifications !== false;
     elements.autoUpdate.checked = settings.autoUpdate !== false;
-    
-    // 显示/隐藏代理URL输入框
-    toggleProxyUrlInput();
     
   } catch (error) {
     console.error('加载设置失败:', error);
@@ -61,9 +51,6 @@ function bindEvents() {
   
   // 测试按钮
   elements.testBtn.addEventListener('click', testConnection);
-  
-  // 代理复选框
-  elements.useProxy.addEventListener('change', toggleProxyUrlInput);
   
   // URL输入时自动提取ID
   elements.scholarUrl.addEventListener('input', extractScholarId);
@@ -88,21 +75,10 @@ async function saveSettings() {
       finalScholarId = extractIdFromUrl(scholarUrl);
     }
     
-    // 验证代理设置
-    const useProxy = elements.useProxy.checked;
-    const proxyUrl = elements.proxyUrl.value.trim();
-    
-    if (useProxy && !proxyUrl) {
-      showMessage('请输入代理服务器 URL', 'error');
-      return;
-    }
-    
     // 保存设置
     await chrome.storage.sync.set({
       scholarUrl: scholarUrl,
       scholarId: finalScholarId,
-      useProxy: useProxy,
-      proxyUrl: proxyUrl,
       enableNotifications: elements.enableNotifications.checked,
       autoUpdate: elements.autoUpdate.checked
     });
@@ -128,8 +104,6 @@ async function testConnection() {
     
     const scholarUrl = elements.scholarUrl.value.trim();
     const scholarId = elements.scholarId.value.trim();
-    const useProxy = elements.useProxy.checked;
-    const proxyUrl = elements.proxyUrl.value.trim();
     
     if (!scholarUrl && !scholarId) {
       showMessage('请先输入 Scholar 信息', 'error');
@@ -139,90 +113,31 @@ async function testConnection() {
     // 构建目标URL
     const targetUrl = scholarUrl || `https://scholar.google.com/citations?user=${scholarId}&hl=en`;
     
-    let response;
+    console.log('测试访问 Google Scholar...');
     
-    if (useProxy && proxyUrl) {
-      // 使用自定义代理
-      const testUrl = `${proxyUrl}?user=${scholarId || extractIdFromUrl(scholarUrl)}`;
-      response = await fetch(testUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json'
-        }
-      });
-    } else {
-      // 首先尝试直接访问
-      try {
-        console.log('尝试直接访问...');
-        
-        // 添加10秒超时
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
-        
-        response = await fetch(targetUrl, {
-          method: 'GET',
-          signal: controller.signal,
-          headers: {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36'
-          }
-        });
-        
-        clearTimeout(timeoutId);
-        
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-      } catch (directError) {
-        if (directError.name === 'AbortError') {
-          console.log('直接访问超时，尝试CORS代理...');
-          showMessage('直接连接超时，正在尝试代理...', 'info');
-        } else {
-          console.log('直接访问失败，尝试CORS代理...');
-        }
-        
-        // 如果直接访问失败，尝试CORS代理
-        const corsProxy = 'https://cors-anywhere.herokuapp.com/';
-        const testUrl = corsProxy + encodeURIComponent(targetUrl);
-        
-        const proxyController = new AbortController();
-        const proxyTimeoutId = setTimeout(() => proxyController.abort(), 10000);
-        
-        try {
-          response = await fetch(testUrl, {
-            method: 'GET',
-            signal: proxyController.signal,
-            headers: {
-              'Accept': 'text/html'
-            }
-          });
-          clearTimeout(proxyTimeoutId);
-        } catch (proxyError) {
-          clearTimeout(proxyTimeoutId);
-          if (proxyError.name === 'AbortError') {
-            showMessage('连接超时（10秒）。请使用VPN或部署自己的Cloudflare Worker', 'error');
-          } else {
-            showMessage('无法连接到Google Scholar。请检查网络或使用VPN', 'error');
-          }
-          return;
-        }
+    // 创建超时控制
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
+    const response = await fetch(targetUrl, {
+      method: 'GET',
+      signal: controller.signal,
+      headers: {
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36'
       }
-    }
+    });
+    
+    clearTimeout(timeoutId);
     
     if (response.ok) {
-      if (useProxy && proxyUrl) {
-        // 使用自定义代理返回的JSON
-        const data = await response.json();
-        showMessage(`连接成功！引用数：${data.citations || 0}`, 'success');
+      // 解析HTML
+      const html = await response.text();
+      const result = parseHTMLForTest(html);
+      if (result.citations > 0) {
+        showMessage(`连接成功！引用数：${result.citations}，h-index：${result.hIndex}，i10-index：${result.i10Index}`, 'success');
       } else {
-        // 解析HTML
-        const html = await response.text();
-        const result = parseHTMLForTest(html);
-        if (result.citations > 0) {
-          showMessage(`连接成功！引用数：${result.citations}，h-index：${result.hIndex}，i10-index：${result.i10Index}`, 'success');
-        } else {
-          showMessage('连接成功，但未能解析出引用数据，请检查Scholar URL是否正确', 'info');
-        }
+        showMessage('连接成功，但未能解析出引用数据，请检查Scholar URL是否正确', 'info');
       }
     } else {
       showMessage(`连接失败：HTTP ${response.status}`, 'error');
@@ -231,9 +146,9 @@ async function testConnection() {
   } catch (error) {
     console.error('测试连接失败:', error);
     if (error.name === 'AbortError') {
-      showMessage('连接超时。建议使用VPN或部署Cloudflare Worker', 'error');
+      showMessage('连接超时，请检查网络设置', 'error');
     } else {
-      showMessage(`连接失败：${error.message}`, 'error');
+      showMessage('无法访问 Google Scholar，请检查网络设置', 'error');
     }
   }
 }
@@ -288,10 +203,6 @@ function parseHTMLForTest(html) {
   }
 }
 
-// 切换代理URL输入框显示
-function toggleProxyUrlInput() {
-  elements.proxyUrlGroup.style.display = elements.useProxy.checked ? 'block' : 'none';
-}
 
 // 显示消息
 function showMessage(text, type) {
@@ -299,8 +210,11 @@ function showMessage(text, type) {
   elements.message.className = `message ${type}`;
   elements.message.classList.remove('hidden');
   
-  // 3秒后自动隐藏
-  setTimeout(() => {
-    elements.message.classList.add('hidden');
-  }, 3000);
+  // 只有成功消息才自动隐藏，错误消息保持显示
+  if (type === 'success') {
+    setTimeout(() => {
+      elements.message.classList.add('hidden');
+    }, 5000);
+  }
+  // 错误和信息提示不自动隐藏，让用户有足够时间阅读
 }
