@@ -25,21 +25,28 @@ A beautiful Chrome extension that displays your Google Scholar citations in real
 
 ### 🚀 Quick Start
 
-1. **Install the Extension**
-   ```bash
-   git clone https://github.com/JingxuanKang/Show-Your-Citations.git
-   cd Show-Your-Citations
-   ```
+#### Method 1: Download Release (Easiest)
+1. **Download the latest release**
+   - Go to [Releases](https://github.com/JingxuanKang/Show-Your-Citations/releases)
+   - Download `show-your-citations-v1.0.0.zip`
+   - Unzip the file
 
 2. **Load in Chrome**
    - Open `chrome://extensions/`
    - Enable **Developer mode**
-   - Click **Load unpacked** and select the project folder
+   - Click **Load unpacked** and select the unzipped folder
 
 3. **Setup**
    - Click the extension icon
    - Enter your Google Scholar profile URL
    - Save and enjoy!
+
+#### Method 2: Clone Repository
+```bash
+git clone https://github.com/JingxuanKang/Show-Your-Citations.git
+cd Show-Your-Citations
+```
+Then load as unpacked extension in Chrome.
 
 ### 🌐 For Users in China
 
@@ -90,21 +97,28 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ### 🚀 快速开始
 
-1. **安装扩展**
-   ```bash
-   git clone https://github.com/JingxuanKang/Show-Your-Citations.git
-   cd Show-Your-Citations
-   ```
+#### 方法1：下载发布版（最简单）
+1. **下载最新版本**
+   - 访问 [Releases](https://github.com/JingxuanKang/Show-Your-Citations/releases)
+   - 下载 `show-your-citations-v1.0.0.zip`
+   - 解压文件
 
 2. **加载到Chrome**
    - 打开 `chrome://extensions/`
    - 启用**开发者模式**
-   - 点击**加载已解压的扩展程序**，选择项目文件夹
+   - 点击**加载已解压的扩展程序**，选择解压后的文件夹
 
 3. **设置**
    - 点击扩展图标
    - 输入你的Google Scholar个人主页URL
    - 保存并使用！
+
+#### 方法2：克隆仓库
+```bash
+git clone https://github.com/JingxuanKang/Show-Your-Citations.git
+cd Show-Your-Citations
+```
+然后在Chrome中加载为已解压的扩展程序。
 
 ### 🌐 中国用户特别说明
 
