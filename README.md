@@ -29,12 +29,12 @@ A beautiful Chrome extension that displays your Google Scholar citations in real
 1. **Download the latest release**
    - Go to [Releases](https://github.com/JingxuanKang/Show-Your-Citations/releases)
    - Download `show-your-citations-v1.0.0.zip`
-   - Unzip the file
 
-2. **Load in Chrome**
+2. **Install in Chrome**
    - Open `chrome://extensions/`
    - Enable **Developer mode**
-   - Click **Load unpacked** and select the unzipped folder
+   - Drag and drop the `.zip` file directly onto the page
+   - Or unzip and click **Load unpacked** to select the folder
 
 3. **Setup**
    - Click the extension icon
@@ -101,12 +101,12 @@ MIT License - see [LICENSE](LICENSE) file for details.
 1. **下载最新版本**
    - 访问 [Releases](https://github.com/JingxuanKang/Show-Your-Citations/releases)
    - 下载 `show-your-citations-v1.0.0.zip`
-   - 解压文件
 
-2. **加载到Chrome**
+2. **安装到Chrome**
    - 打开 `chrome://extensions/`
    - 启用**开发者模式**
-   - 点击**加载已解压的扩展程序**，选择解压后的文件夹
+   - 直接拖拽 `.zip` 文件到页面上
+   - 或解压后点击**加载已解压的扩展程序**选择文件夹
 
 3. **设置**
    - 点击扩展图标
