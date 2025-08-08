@@ -134,20 +134,6 @@ MIT许可证 - 详见[LICENSE](LICENSE)文件。
 
 ---
 
-## 📊 Development Timeline | 开发时间线
-
-- **Development Period | 开发周期**: 2025.07.28 - 2025.08.09
-- **Total Development Time | 总开发时间**: 13 days
-- **Version | 版本**: 1.0.0
-
-## 👨‍💻 Author | 作者
-
-**Jingxuan Kang**
-- GitHub: [@JingxuanKang](https://github.com/JingxuanKang)
-- Project: [Show-Your-Citations](https://github.com/JingxuanKang/Show-Your-Citations)
-
----
-
 ⭐ **If you find this useful, please star the repository! | 如果觉得有用，请给仓库加星！**
 
 Made with ❤️ for researchers worldwide | 为全球研究者用心打造
