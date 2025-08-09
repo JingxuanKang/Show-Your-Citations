@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>生成扩展图标</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f0f0f0;
+    }
+    .canvas-container {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin: 20px 0;
+    }
+    canvas {
+      border: 1px solid #ccc;
+      background: white;
+    }
+    button {
+      padding: 10px 20px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    button:hover {
+      background: #45a049;
+    }
+  </style>
+</head>
+<body>
+  <h1>生成 Chrome 扩展图标</h1>
+  <p>点击按钮生成所需的图标，然后右键保存每个图标到 icons 文件夹</p>
+  
+  <button onclick="generateIcons()">生成所有图标</button>
+  
+  <div class="canvas-container">
+    <div>
+      <h3>icon16.png</h3>
+      <canvas id="icon16" width="16" height="16"></canvas>
+    </div>
+    <div>
+      <h3>icon32.png</h3>
+      <canvas id="icon32" width="32" height="32"></canvas>
+    </div>
+    <div>
+      <h3>icon48.png</h3>
+      <canvas id="icon48" width="48" height="48"></canvas>
+    </div>
+    <div>
+      <h3>icon128.png</h3>
+      <canvas id="icon128" width="128" height="128"></canvas>
+    </div>
+  </div>
+
+  <script>
+    function generateIcons() {
+      const sizes = [16, 32, 48, 128];
+      
+      sizes.forEach(size => {
+        const canvas = document.getElementById(`icon${size}`);
+        const ctx = canvas.getContext('2d');
+        
+        // 清除画布
+        ctx.clearRect(0, 0, size, size);
+        
+        // 绘制渐变背景
+        const gradient = ctx.createLinearGradient(0, 0, size, size);
+        gradient.addColorStop(0, '#667eea');
+        gradient.addColorStop(1, '#764ba2');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, size, size);
+        
+        // 绘制文字
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        if (size >= 48) {
+          ctx.font = `bold ${size * 0.4}px Arial`;
+          ctx.fillText('GS', size / 2, size / 2);
+        } else {
+          ctx.font = `bold ${size * 0.5}px Arial`;
+          ctx.fillText('G', size / 2, size / 2);
+        }
+      });
+      
+      alert('图标已生成！右键点击每个图标选择"图片另存为"，保存到 icons 文件夹中');
+    }
+    
+    // 自动生成图标
+    window.onload = () => generateIcons();
+  </script>
+</body>
+</html>
