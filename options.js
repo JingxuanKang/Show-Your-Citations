@@ -8,6 +8,7 @@ const elements = {
   autoUpdate: document.getElementById('autoUpdate'),
   saveBtn: document.getElementById('saveBtn'),
   testBtn: document.getElementById('testBtn'),
+  clearCacheBtn: document.getElementById('clearCacheBtn'),
   message: document.getElementById('message')
 };
 
@@ -51,6 +52,9 @@ function bindEvents() {
   
   // 测试按钮
   elements.testBtn.addEventListener('click', testConnection);
+  
+  // 清理缓存按钮
+  elements.clearCacheBtn.addEventListener('click', clearCache);
   
   // URL输入时自动提取ID
   elements.scholarUrl.addEventListener('input', extractScholarId);
@@ -203,6 +207,21 @@ function parseHTMLForTest(html) {
   }
 }
 
+// 清理缓存
+async function clearCache() {
+  try {
+    // 清除本地存储的引用数据
+    await chrome.storage.local.remove(['citationData', 'lastUpdate', 'previousCitations']);
+    
+    // 显示成功消息
+    showMessage('缓存已清理！下次打开扩展时将重新获取数据', 'success');
+    
+    console.log('缓存已清理');
+  } catch (error) {
+    console.error('清理缓存失败:', error);
+    showMessage('清理缓存失败', 'error');
+  }
+}
 
 // 显示消息
 function showMessage(text, type) {

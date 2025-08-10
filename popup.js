@@ -60,17 +60,25 @@ async function loadData() {
     // 获取缓存数据
     const cached = await chrome.storage.local.get(['citationData', 'lastUpdate']);
     
-    if (cached.citationData && cached.citationData.citations) {
-      // 优先显示缓存数据
-      console.log('使用缓存数据:', cached.citationData);
-      await displayData(cached.citationData);
-      updateLastUpdateTime(cached.lastUpdate);
-      
-      // 只有在需要更新时才后台更新（不影响界面）
-      if (shouldUpdate(cached.lastUpdate)) {
-        console.log('缓存已过期，后台更新数据...');
-        // 后台静默更新，不显示loading
-        fetchCitations(false, true); // 不强制，静默更新
+    // 验证缓存数据的有效性
+    if (cached.citationData && cached.citationData.citations !== undefined && cached.citationData.citations !== null) {
+      // 检查是否是有效的数据（不是默认值或错误值）
+      if (cached.citationData.citations > 0 || cached.citationData.hIndex > 0 || cached.citationData.i10Index > 0) {
+        // 优先显示缓存数据
+        console.log('使用缓存数据:', cached.citationData);
+        await displayData(cached.citationData);
+        updateLastUpdateTime(cached.lastUpdate);
+        
+        // 只有在需要更新时才后台更新（不影响界面）
+        if (shouldUpdate(cached.lastUpdate)) {
+          console.log('缓存已过期，后台更新数据...');
+          // 后台静默更新，不显示loading
+          fetchCitations(false, true); // 不强制，静默更新
+        }
+      } else {
+        // 缓存数据可能无效，重新获取
+        console.log('缓存数据可能无效，重新获取...');
+        fetchCitations();
       }
     } else {
       // 没有缓存数据，必须获取
@@ -182,9 +190,11 @@ async function fetchDirectly(scholarUrl) {
       const html = await response.text();
       const data = parseScholarHTML(html);
       
-      if (data && data.citations) {
+      if (data && data.citations !== undefined) {
         console.log('直接访问成功！获取到数据:', data);
         return data;
+      } else {
+        console.log('解析失败，未能提取到引用数据');
       }
     } else {
       console.log(`直接访问失败: HTTP ${response.status}`);
