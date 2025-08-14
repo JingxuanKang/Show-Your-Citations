@@ -61,40 +61,21 @@ async function loadData() {
     const cached = await chrome.storage.local.get(['citationData', 'lastUpdate']);
     
     // 验证缓存数据的有效性
-    if (cached.citationData && cached.citationData.citations !== undefined && cached.citationData.citations !== null) {
-      // 检查数据一致性 - 如果citations很小但h-index或i10-index很大，说明数据有问题
-      const citations = cached.citationData.citations;
-      const hIndex = cached.citationData.hIndex || 0;
-      const i10Index = cached.citationData.i10Index || 0;
+    if (cached.citationData && (cached.citationData.citations > 0 || cached.citationData.hIndex > 0 || cached.citationData.i10Index > 0)) {
+      // 显示缓存数据
+      console.log('使用缓存数据:', cached.citationData);
+      await displayData(cached.citationData);
+      updateLastUpdateTime(cached.lastUpdate);
       
-      // 基本的数据一致性检查
-      const isDataConsistent = (
-        citations >= hIndex && // citations应该大于等于h-index
-        citations >= i10Index && // citations应该大于等于i10-index
-        (citations > 10 || (hIndex <= 5 && i10Index <= 5)) // 如果citations很小，h-index和i10也应该很小
-      );
-      
-      if (isDataConsistent && (citations > 0 || hIndex > 0 || i10Index > 0)) {
-        // 数据看起来有效且一致
-        console.log('使用缓存数据:', cached.citationData);
-        await displayData(cached.citationData);
-        updateLastUpdateTime(cached.lastUpdate);
-        
-        // 只有在需要更新时才后台更新（不影响界面）
-        if (shouldUpdate(cached.lastUpdate)) {
-          console.log('缓存已过期，后台更新数据...');
-          // 后台静默更新，不显示loading
-          fetchCitations(false, true); // 不强制，静默更新
-        }
-      } else {
-        // 缓存数据不一致或无效，清除并重新获取
-        console.log('缓存数据不一致，清除并重新获取...', cached.citationData);
-        await chrome.storage.local.remove(['citationData', 'lastUpdate']);
-        fetchCitations();
+      // 只有在需要更新时才后台更新（不影响界面）
+      if (shouldUpdate(cached.lastUpdate)) {
+        console.log('缓存已过期，后台更新数据...');
+        // 后台静默更新，不显示loading
+        fetchCitations(false, true); // 不强制，静默更新
       }
     } else {
-      // 没有缓存数据，必须获取
-      console.log('没有缓存数据，首次获取...');
+      // 没有缓存数据或数据无效，必须获取
+      console.log('没有有效缓存数据，首次获取...');
       fetchCitations();
     }
   } catch (error) {
@@ -236,23 +217,45 @@ function parseScholarHTML(html) {
     const statCells = doc.querySelectorAll('td.gsc_rsb_std');
     console.log(`找到 ${statCells.length} 个统计单元格`);
     
-    if (statCells.length >= 3) {
-      // 通常第1个是总引用，第3个是h-index，第5个是i10-index
-      // 或者第0个是总引用，第2个是h-index，第4个是i10-index
-      const citations = parseInt(statCells[0]?.textContent?.replace(/\D/g, '') || '0');
-      const hIndex = statCells.length > 2 ? parseInt(statCells[2]?.textContent?.replace(/\D/g, '') || '0') : 0;
-      const i10Index = statCells.length > 4 ? parseInt(statCells[4]?.textContent?.replace(/\D/g, '') || '0') : 0;
-      
-      console.log(`DOM解析结果: 引用=${citations}, h-index=${hIndex}, i10=${i10Index}`);
-      
-      if (citations > 0) {
-        return {
-          citations: citations,
-          hIndex: hIndex,
-          i10Index: i10Index,
-          timestamp: Date.now()
-        };
-      }
+    // 打印所有找到的单元格，用于调试
+    console.log('所有统计单元格内容:');
+    statCells.forEach((cell, i) => {
+      console.log(`  [${i}]: "${cell.textContent?.trim()}"`);
+    });
+    
+    // Google Scholar的表格结构通常有6个单元格（两列数据）
+    // 但有时可能只有3个单元格（一列数据）
+    let citations = 0, hIndex = 0, i10Index = 0;
+    
+    if (statCells.length === 6) {
+      // 完整的表格：有 All 和 Since YYYY 两列
+      // 索引 0,2,4 是全部时间的数据
+      citations = parseInt(statCells[0]?.textContent?.replace(/\D/g, '') || '0');
+      hIndex = parseInt(statCells[2]?.textContent?.replace(/\D/g, '') || '0');
+      i10Index = parseInt(statCells[4]?.textContent?.replace(/\D/g, '') || '0');
+    } else if (statCells.length === 3) {
+      // 简化的表格：只有一列数据
+      citations = parseInt(statCells[0]?.textContent?.replace(/\D/g, '') || '0');
+      hIndex = parseInt(statCells[1]?.textContent?.replace(/\D/g, '') || '0');
+      i10Index = parseInt(statCells[2]?.textContent?.replace(/\D/g, '') || '0');
+    } else if (statCells.length > 0) {
+      // 其他情况，尝试提取
+      console.warn(`意外的单元格数量: ${statCells.length}`);
+      // 假设是按顺序的
+      citations = parseInt(statCells[0]?.textContent?.replace(/\D/g, '') || '0');
+      hIndex = statCells[1] ? parseInt(statCells[1]?.textContent?.replace(/\D/g, '') || '0') : 0;
+      i10Index = statCells[2] ? parseInt(statCells[2]?.textContent?.replace(/\D/g, '') || '0') : 0;
+    }
+    
+    console.log(`DOM解析结果: 引用=${citations}, h-index=${hIndex}, i10=${i10Index}`);
+    
+    if (citations > 0 || hIndex > 0 || i10Index > 0) {
+      return {
+        citations: citations,
+        hIndex: hIndex,
+        i10Index: i10Index,
+        timestamp: Date.now()
+      };
     }
     
     // 方法2：使用更宽松的正则表达式
