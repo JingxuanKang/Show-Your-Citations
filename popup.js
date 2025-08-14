@@ -104,8 +104,12 @@ async function fetchCitations(force = false, silent = false) {
     const settings = await chrome.storage.sync.get(['scholarId', 'scholarUrl']);
     
     if (!settings.scholarId && !settings.scholarUrl) {
-      showSetupPrompt();
       showLoading(false);  // 停止loading
+      showSetupPrompt();
+      // 如果是手动刷新，显示提示
+      if (!silent && force) {
+        showError('请先设置您的 Google Scholar ID');
+      }
       return;
     }
     
@@ -478,4 +482,7 @@ function showSetupPrompt() {
   if (mainCard) mainCard.style.display = 'none';
   if (metricsRow) metricsRow.style.display = 'none';
   if (updateInfo) updateInfo.style.display = 'none';
+  
+  // 隐藏loading
+  showLoading(false);
 }
