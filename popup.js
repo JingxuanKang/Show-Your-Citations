@@ -8,23 +8,26 @@ const CONFIG = {
   scholarBaseUrl: 'https://scholar.google.com/citations'
 };
 
-// DOM元素
-const elements = {
-  totalCitations: document.getElementById('totalCitations'),
-  hIndex: document.getElementById('hIndex'),
-  i10Index: document.getElementById('i10Index'),
-  lastUpdate: document.getElementById('lastUpdate'),
-  refreshBtn: document.getElementById('refreshBtn'),
-  settingsBtn: document.getElementById('settingsBtn'),
-  setupBtn: document.getElementById('setupBtn'),
-  loadingOverlay: document.getElementById('loadingOverlay'),
-  errorMsg: document.getElementById('errorMsg'),
-  setupPrompt: document.getElementById('setupPrompt'),
-  citationChange: document.getElementById('citationChange')
-};
+// DOM元素 - 将在DOMContentLoaded后初始化
+let elements = {};
 
 // 初始化
 document.addEventListener('DOMContentLoaded', async () => {
+  // 获取DOM元素
+  elements = {
+    totalCitations: document.getElementById('totalCitations'),
+    hIndex: document.getElementById('hIndex'),
+    i10Index: document.getElementById('i10Index'),
+    lastUpdate: document.getElementById('lastUpdate'),
+    refreshBtn: document.getElementById('refreshBtn'),
+    settingsBtn: document.getElementById('settingsBtn'),
+    setupBtn: document.getElementById('setupBtn'),
+    loadingOverlay: document.getElementById('loadingOverlay'),
+    errorMsg: document.getElementById('errorMsg'),
+    setupPrompt: document.getElementById('setupPrompt'),
+    citationChange: document.getElementById('citationChange')
+  };
+  
   // 调整窗口高度
   adjustWindowHeight();
   
@@ -60,9 +63,8 @@ async function loadData() {
     // 获取缓存数据
     const cached = await chrome.storage.local.get(['citationData', 'lastUpdate']);
     
-    // 验证缓存数据的有效性
-    if (cached.citationData && (cached.citationData.citations > 0 || cached.citationData.hIndex > 0 || cached.citationData.i10Index > 0)) {
-      // 显示缓存数据
+    if (cached.citationData && cached.citationData.citations) {
+      // 优先显示缓存数据
       console.log('使用缓存数据:', cached.citationData);
       await displayData(cached.citationData);
       updateLastUpdateTime(cached.lastUpdate);
@@ -74,8 +76,8 @@ async function loadData() {
         fetchCitations(false, true); // 不强制，静默更新
       }
     } else {
-      // 没有缓存数据或数据无效，必须获取
-      console.log('没有有效缓存数据，首次获取...');
+      // 没有缓存数据，必须获取
+      console.log('没有缓存数据，首次获取...');
       fetchCitations();
     }
   } catch (error) {
@@ -104,12 +106,8 @@ async function fetchCitations(force = false, silent = false) {
     const settings = await chrome.storage.sync.get(['scholarId', 'scholarUrl']);
     
     if (!settings.scholarId && !settings.scholarUrl) {
-      showLoading(false);  // 停止loading
       showSetupPrompt();
-      // 如果是手动刷新，显示提示
-      if (!silent && force) {
-        showError('请先设置您的 Google Scholar ID');
-      }
+      showLoading(false);  // 停止loading
       return;
     }
     
@@ -187,11 +185,9 @@ async function fetchDirectly(scholarUrl) {
       const html = await response.text();
       const data = parseScholarHTML(html);
       
-      if (data && data.citations !== undefined) {
+      if (data && data.citations) {
         console.log('直接访问成功！获取到数据:', data);
         return data;
-      } else {
-        console.log('解析失败，未能提取到引用数据');
       }
     } else {
       console.log(`直接访问失败: HTTP ${response.status}`);
@@ -221,45 +217,23 @@ function parseScholarHTML(html) {
     const statCells = doc.querySelectorAll('td.gsc_rsb_std');
     console.log(`找到 ${statCells.length} 个统计单元格`);
     
-    // 打印所有找到的单元格，用于调试
-    console.log('所有统计单元格内容:');
-    statCells.forEach((cell, i) => {
-      console.log(`  [${i}]: "${cell.textContent?.trim()}"`);
-    });
-    
-    // Google Scholar的表格结构通常有6个单元格（两列数据）
-    // 但有时可能只有3个单元格（一列数据）
-    let citations = 0, hIndex = 0, i10Index = 0;
-    
-    if (statCells.length === 6) {
-      // 完整的表格：有 All 和 Since YYYY 两列
-      // 索引 0,2,4 是全部时间的数据
-      citations = parseInt(statCells[0]?.textContent?.replace(/\D/g, '') || '0');
-      hIndex = parseInt(statCells[2]?.textContent?.replace(/\D/g, '') || '0');
-      i10Index = parseInt(statCells[4]?.textContent?.replace(/\D/g, '') || '0');
-    } else if (statCells.length === 3) {
-      // 简化的表格：只有一列数据
-      citations = parseInt(statCells[0]?.textContent?.replace(/\D/g, '') || '0');
-      hIndex = parseInt(statCells[1]?.textContent?.replace(/\D/g, '') || '0');
-      i10Index = parseInt(statCells[2]?.textContent?.replace(/\D/g, '') || '0');
-    } else if (statCells.length > 0) {
-      // 其他情况，尝试提取
-      console.warn(`意外的单元格数量: ${statCells.length}`);
-      // 假设是按顺序的
-      citations = parseInt(statCells[0]?.textContent?.replace(/\D/g, '') || '0');
-      hIndex = statCells[1] ? parseInt(statCells[1]?.textContent?.replace(/\D/g, '') || '0') : 0;
-      i10Index = statCells[2] ? parseInt(statCells[2]?.textContent?.replace(/\D/g, '') || '0') : 0;
-    }
-    
-    console.log(`DOM解析结果: 引用=${citations}, h-index=${hIndex}, i10=${i10Index}`);
-    
-    if (citations > 0 || hIndex > 0 || i10Index > 0) {
-      return {
-        citations: citations,
-        hIndex: hIndex,
-        i10Index: i10Index,
-        timestamp: Date.now()
-      };
+    if (statCells.length >= 3) {
+      // 通常第1个是总引用，第3个是h-index，第5个是i10-index
+      // 或者第0个是总引用，第2个是h-index，第4个是i10-index
+      const citations = parseInt(statCells[0]?.textContent?.replace(/\D/g, '') || '0');
+      const hIndex = statCells.length > 2 ? parseInt(statCells[2]?.textContent?.replace(/\D/g, '') || '0') : 0;
+      const i10Index = statCells.length > 4 ? parseInt(statCells[4]?.textContent?.replace(/\D/g, '') || '0') : 0;
+      
+      console.log(`DOM解析结果: 引用=${citations}, h-index=${hIndex}, i10=${i10Index}`);
+      
+      if (citations > 0) {
+        return {
+          citations: citations,
+          hIndex: hIndex,
+          i10Index: i10Index,
+          timestamp: Date.now()
+        };
+      }
     }
     
     // 方法2：使用更宽松的正则表达式
@@ -482,7 +456,4 @@ function showSetupPrompt() {
   if (mainCard) mainCard.style.display = 'none';
   if (metricsRow) metricsRow.style.display = 'none';
   if (updateInfo) updateInfo.style.display = 'none';
-  
-  // 隐藏loading
-  showLoading(false);
 }
