@@ -62,9 +62,20 @@ async function loadData() {
     
     // 验证缓存数据的有效性
     if (cached.citationData && cached.citationData.citations !== undefined && cached.citationData.citations !== null) {
-      // 检查是否是有效的数据（不是默认值或错误值）
-      if (cached.citationData.citations > 0 || cached.citationData.hIndex > 0 || cached.citationData.i10Index > 0) {
-        // 优先显示缓存数据
+      // 检查数据一致性 - 如果citations很小但h-index或i10-index很大，说明数据有问题
+      const citations = cached.citationData.citations;
+      const hIndex = cached.citationData.hIndex || 0;
+      const i10Index = cached.citationData.i10Index || 0;
+      
+      // 基本的数据一致性检查
+      const isDataConsistent = (
+        citations >= hIndex && // citations应该大于等于h-index
+        citations >= i10Index && // citations应该大于等于i10-index
+        (citations > 10 || (hIndex <= 5 && i10Index <= 5)) // 如果citations很小，h-index和i10也应该很小
+      );
+      
+      if (isDataConsistent && (citations > 0 || hIndex > 0 || i10Index > 0)) {
+        // 数据看起来有效且一致
         console.log('使用缓存数据:', cached.citationData);
         await displayData(cached.citationData);
         updateLastUpdateTime(cached.lastUpdate);
@@ -76,8 +87,9 @@ async function loadData() {
           fetchCitations(false, true); // 不强制，静默更新
         }
       } else {
-        // 缓存数据可能无效，重新获取
-        console.log('缓存数据可能无效，重新获取...');
+        // 缓存数据不一致或无效，清除并重新获取
+        console.log('缓存数据不一致，清除并重新获取...', cached.citationData);
+        await chrome.storage.local.remove(['citationData', 'lastUpdate']);
         fetchCitations();
       }
     } else {
