@@ -137,7 +137,7 @@ async function testConnection() {
     if (response.ok) {
       // 解析HTML
       const html = await response.text();
-      const result = parseHTMLForTest(html);
+      const result = parseScholarHTML(html);
       if (result.citations > 0) {
         showMessage(`连接成功！引用数：${result.citations}，h-index：${result.hIndex}，i10-index：${result.i10Index}`, 'success');
       } else {
@@ -173,39 +173,8 @@ function extractIdFromUrl(url) {
   return match ? match[1] : '';
 }
 
-// 解析HTML获取引用数据（用于测试）
-function parseHTMLForTest(html) {
-  try {
-    // 使用DOM解析器
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-    
-    // 查找统计表格
-    const statCells = doc.querySelectorAll('td.gsc_rsb_std');
-    
-    if (statCells.length >= 3) {
-      return {
-        citations: parseInt(statCells[0]?.textContent?.replace(/\D/g, '') || '0'),
-        hIndex: statCells.length > 2 ? parseInt(statCells[2]?.textContent?.replace(/\D/g, '') || '0') : 0,
-        i10Index: statCells.length > 4 ? parseInt(statCells[4]?.textContent?.replace(/\D/g, '') || '0') : 0
-      };
-    }
-    
-    // 备用：正则表达式
-    const citationMatch = html.match(/Citations[\s\S]*?<td[^>]*>[\s]*(\d+)/i);
-    const hIndexMatch = html.match(/h-index[\s\S]*?<td[^>]*>[\s]*(\d+)/i);
-    const i10Match = html.match(/i10-index[\s\S]*?<td[^>]*>[\s]*(\d+)/i);
-    
-    return {
-      citations: parseInt(citationMatch?.[1] || '0'),
-      hIndex: parseInt(hIndexMatch?.[1] || '0'),
-      i10Index: parseInt(i10Match?.[1] || '0')
-    };
-  } catch (error) {
-    console.error('解析失败:', error);
-    return { citations: 0, hIndex: 0, i10Index: 0 };
-  }
-}
+// 使用共享的解析函数（从parser.js）
+// parseScholarHTML函数已在parser.js中定义
 
 // 清理缓存
 async function clearCache() {

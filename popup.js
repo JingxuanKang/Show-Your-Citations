@@ -137,8 +137,12 @@ async function fetchCitations(force = false, silent = false) {
           showSuccess('数据更新成功！');
         }
       }
-    } else {
+    } else if (!silent) {
+      // 只有非静默模式才抛出错误
       throw new Error('无法获取数据');
+    } else {
+      // 静默模式下，如果获取失败，不做任何操作
+      console.log('静默更新失败，保留现有数据');
     }
     
   } catch (error) {
@@ -185,8 +189,18 @@ async function fetchDirectly(scholarUrl) {
       const html = await response.text();
       const data = parseScholarHTML(html);
       
-      if (data && data.citations) {
+      // 验证数据
+      const oldData = await chrome.storage.local.get(['citationData']);
+      if (validateParsedData(data, oldData.citationData)) {
         console.log('直接访问成功！获取到数据:', data);
+        return data;
+      } else {
+        console.error('解析的数据未通过验证，可能存在错误');
+        // 如果有旧数据且新数据明显异常，返回null以保留旧数据
+        if (oldData.citationData && oldData.citationData.citations > 10 && data.citations <= 2) {
+          console.log('新数据异常，保留旧数据');
+          return null;
+        }
         return data;
       }
     } else {
@@ -204,76 +218,8 @@ async function fetchDirectly(scholarUrl) {
 }
 
 
-// 解析Google Scholar HTML
-function parseScholarHTML(html) {
-  try {
-    console.log('开始解析HTML...');
-    
-    // 方法1：使用DOM解析器
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-    
-    // 查找统计表格中的所有数值单元格
-    const statCells = doc.querySelectorAll('td.gsc_rsb_std');
-    console.log(`找到 ${statCells.length} 个统计单元格`);
-    
-    if (statCells.length >= 3) {
-      // 通常第1个是总引用，第3个是h-index，第5个是i10-index
-      // 或者第0个是总引用，第2个是h-index，第4个是i10-index
-      const citations = parseInt(statCells[0]?.textContent?.replace(/\D/g, '') || '0');
-      const hIndex = statCells.length > 2 ? parseInt(statCells[2]?.textContent?.replace(/\D/g, '') || '0') : 0;
-      const i10Index = statCells.length > 4 ? parseInt(statCells[4]?.textContent?.replace(/\D/g, '') || '0') : 0;
-      
-      console.log(`DOM解析结果: 引用=${citations}, h-index=${hIndex}, i10=${i10Index}`);
-      
-      if (citations > 0) {
-        return {
-          citations: citations,
-          hIndex: hIndex,
-          i10Index: i10Index,
-          timestamp: Date.now()
-        };
-      }
-    }
-    
-    // 方法2：使用更宽松的正则表达式
-    console.log('尝试正则表达式解析...');
-    
-    // 查找 "Citations" 后面的数字
-    let citationMatch = html.match(/Citations[\s\S]*?<td[^>]*>[\s]*(\d+)/i);
-    if (!citationMatch) {
-      citationMatch = html.match(/被引用次数[\s\S]*?<td[^>]*>[\s]*(\d+)/i);
-    }
-    
-    // 查找 "h-index" 后面的数字
-    let hIndexMatch = html.match(/h-index[\s\S]*?<td[^>]*>[\s]*(\d+)/i);
-    
-    // 查找 "i10-index" 后面的数字  
-    let i10Match = html.match(/i10-index[\s\S]*?<td[^>]*>[\s]*(\d+)/i);
-    
-    const citations = parseInt(citationMatch?.[1] || '0');
-    const hIndex = parseInt(hIndexMatch?.[1] || '0');
-    const i10Index = parseInt(i10Match?.[1] || '0');
-    
-    console.log(`正则解析结果: 引用=${citations}, h-index=${hIndex}, i10=${i10Index}`);
-    
-    return {
-      citations: citations,
-      hIndex: hIndex,
-      i10Index: i10Index,
-      timestamp: Date.now()
-    };
-    
-  } catch (error) {
-    console.error('解析HTML失败:', error);
-    return {
-      citations: 0,
-      hIndex: 0,
-      i10Index: 0,
-      timestamp: Date.now()
-    };
-  }
-}
+// 使用共享的解析函数（从parser.js）
+// parseScholarHTML函数已在parser.js中定义
 
 // 显示数据
 async function displayData(data) {

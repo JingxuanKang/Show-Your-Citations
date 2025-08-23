@@ -1,5 +1,8 @@
 // background.js - Service Worker后台脚本
 
+// 导入解析函数
+self.importScripts('parser.js');
+
 // 配置
 const CONFIG = {
   // 更新间隔（毫秒）
@@ -65,7 +68,8 @@ async function updateCitations() {
     // 获取新数据
     const newData = await fetchCitationData(settings);
     
-    if (newData) {
+    if (newData && newData.citations > 0) {
+      // 只有在数据有效时才更新
       // 保存新数据
       await chrome.storage.local.set({
         citationData: newData,
@@ -80,14 +84,16 @@ async function updateCitations() {
         checkAndNotify(oldData.citationData, newData);
       }
       
-      console.log('引用数据已更新:', newData);
+      console.log('后台引用数据已更新:', newData);
+    } else {
+      console.log('后台更新失败或数据无效，保持现有数据');
     }
   } catch (error) {
     console.error('更新引用数据失败:', error);
   }
 }
 
-// 获取引用数据（简化版）
+// 获取引用数据（使用共享的解析函数）
 async function fetchCitationData(settings) {
   try {
     // 构建URL
@@ -98,73 +104,59 @@ async function fetchCitationData(settings) {
       scholarUrl = `https://scholar.google.com/citations?user=${settings.scholarId}&hl=en`;
     }
     
+    // 获取旧数据用于验证
+    const oldData = await chrome.storage.local.get(['citationData']);
+    
     // 首先尝试直接访问
     try {
       console.log('后台尝试直接访问 Google Scholar...');
+      
+      // 创建超时控制
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5秒超时
+      
       const response = await fetch(scholarUrl, {
+        signal: controller.signal,
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36',
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
         }
       });
       
+      clearTimeout(timeoutId);
+      
       if (response.ok) {
         const html = await response.text();
         
-        // 使用正则表达式提取数据
-        const citationMatch = html.match(/Citations.*?(\d+)/s);
-        const hIndexMatch = html.match(/h-index.*?(\d+)/s);
-        const i10Match = html.match(/i10-index.*?(\d+)/s);
+        // 使用共享的解析函数
+        const data = parseScholarHTML(html);
         
-        if (citationMatch) {
-          console.log('直接访问成功！');
-          return {
-            citations: parseInt(citationMatch[1]),
-            hIndex: parseInt(hIndexMatch?.[1] || '0'),
-            i10Index: parseInt(i10Match?.[1] || '0'),
-            timestamp: Date.now()
-          };
+        // 验证数据
+        if (validateParsedData(data, oldData.citationData)) {
+          console.log('后台直接访问成功！数据:', data);
+          return data;
+        } else {
+          console.error('后台解析的数据未通过验证');
+          // 如果数据异常，返回null以保持旧数据
+          if (oldData.citationData && oldData.citationData.citations > 10 && data.citations <= 2) {
+            console.log('后台更新数据异常，保留旧数据');
+            return null;
+          }
         }
       }
     } catch (directError) {
-      console.log('直接访问失败，尝试使用代理...');
-    }
-    
-    // 如果直接访问失败，使用CORS代理
-    const proxies = [
-      'https://cors-anywhere.herokuapp.com/',
-      'https://api.allorigins.win/raw?url=',
-      'https://corsproxy.io/?'
-    ];
-    
-    for (const proxy of proxies) {
-      try {
-        const response = await fetch(proxy + encodeURIComponent(scholarUrl));
-        
-        if (response.ok) {
-          const html = await response.text();
-          
-          // 使用正则表达式提取数据（更简单可靠）
-          const citationMatch = html.match(/Citations.*?(\d+)/s);
-          const hIndexMatch = html.match(/h-index.*?(\d+)/s);
-          const i10Match = html.match(/i10-index.*?(\d+)/s);
-          
-          if (citationMatch) {
-            return {
-              citations: parseInt(citationMatch[1]),
-              hIndex: parseInt(hIndexMatch?.[1] || '0'),
-              i10Index: parseInt(i10Match?.[1] || '0'),
-              timestamp: Date.now()
-            };
-          }
-        }
-      } catch (error) {
-        console.error(`代理失败 ${proxy}:`, error);
-        continue;
+      if (directError.name === 'AbortError') {
+        console.log('后台访问超时');
+      } else {
+        console.log('后台直接访问失败:', directError.message);
       }
     }
+    
+    // 暂时禁用代理访问，避免解析错误
+    console.log('后台更新失败，保持现有数据');
+    
   } catch (error) {
-    console.error('获取数据失败:', error);
+    console.error('后台获取数据失败:', error);
   }
   
   return null;

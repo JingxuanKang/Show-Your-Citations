@@ -9,7 +9,7 @@
 
 A beautiful Chrome extension that displays your Google Scholar citations in real-time with an elegant glass-morphism UI.
 
-![Version](https://img.shields.io/badge/version-1.1.2-blue)
+![Version](https://img.shields.io/badge/version-1.2.0-blue)
 ![Chrome](https://img.shields.io/badge/Chrome-Extension-green)
 ![License](https://img.shields.io/badge/license-MIT-purple)
 
@@ -61,7 +61,13 @@ Show-Your-Citations/
 
 ### 📝 Changelog
 
-**v1.1.2** (Latest)
+**v1.2.0** (Latest - Stable Release)
+- Critical fix: Resolved DOM initialization issue that caused buttons to be non-functional
+- Reverted to stable codebase with proper element binding
+- Fixed timing issues with HTML loading
+- Ensured all UI elements work correctly
+
+**v1.1.2**
 - Added success notification when manually refreshing data
 - Improved error handling and user feedback
 - Fixed loading spinner issues
@@ -91,7 +97,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 一个美观的Chrome扩展，实时显示你的Google Scholar引用数据，采用优雅的玻璃拟态UI设计。
 
-![版本](https://img.shields.io/badge/版本-1.1.2-blue)
+![版本](https://img.shields.io/badge/版本-1.2.0-blue)
 ![Chrome扩展](https://img.shields.io/badge/Chrome-扩展-green)
 ![许可证](https://img.shields.io/badge/许可证-MIT-purple)
 
@@ -143,7 +149,13 @@ Show-Your-Citations/
 
 ### 📝 更新日志
 
-**v1.1.2** (最新版)
+**v1.2.0** (最新版 - 稳定版本)
+- 关键修复：解决了DOM初始化问题导致按钮无法使用
+- 回退到稳定代码库并修复元素绑定
+- 修复HTML加载时序问题
+- 确保所有UI元素正常工作
+
+**v1.1.2**
 - 手动刷新时添加成功提示
 - 改进错误处理和用户反馈
 - 修复加载动画问题
