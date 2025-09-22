@@ -2,20 +2,24 @@
 
 // 配置
 const CONFIG = {
-  // 更新间隔（毫秒）
-  updateInterval: 6 * 60 * 60 * 1000, // 6小时
+  // 自动更新间隔（毫秒）
+  updateIntervalMs: 6 * 60 * 60 * 1000, // 6小时
+  // 自动更新允许的缓存最大时间
+  maxCacheAgeMs: 60 * 60 * 1000, // 1小时
+  // 首次执行延迟（分钟，Chrome最小值为1）
+  initialDelayMinutes: 1,
   // 报警名称
   alarmName: 'updateCitations'
 };
 
+const UPDATE_INTERVAL_MINUTES = Math.max(CONFIG.updateIntervalMs / 60000, 1);
+
 // 扩展安装或更新时
 chrome.runtime.onInstalled.addListener(async (details) => {
   console.log('扩展已安装/更新:', details.reason);
-  
-  // 设置定时更新
-  await setupAlarm();
-  
-  // 首次安装时打开设置页
+
+  await initializeBackground('installed');
+
   if (details.reason === 'install') {
     chrome.runtime.openOptionsPage();
   }
@@ -24,35 +28,91 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 // 扩展启动时
 chrome.runtime.onStartup.addListener(async () => {
   console.log('扩展已启动');
-  await setupAlarm();
+  await initializeBackground('startup');
 });
 
 // 设置定时器
 async function setupAlarm() {
-  // 清除旧的定时器
+  const settings = await chrome.storage.sync.get(['autoUpdate', 'scholarId', 'scholarUrl']);
+
   await chrome.alarms.clear(CONFIG.alarmName);
-  
-  // 创建新的定时器
+
+  if (settings.autoUpdate === false) {
+    console.log('自动更新已关闭，跳过定时任务');
+    return false;
+  }
+
+  if (!settings.scholarId && !settings.scholarUrl) {
+    console.log('未配置Scholar信息，暂不启动自动更新');
+    return false;
+  }
+
   chrome.alarms.create(CONFIG.alarmName, {
-    periodInMinutes: CONFIG.updateInterval / 60000 // 转换为分钟
+    periodInMinutes: UPDATE_INTERVAL_MINUTES,
+    delayInMinutes: CONFIG.initialDelayMinutes
   });
-  
-  console.log('定时更新已设置：每6小时更新一次');
+
+  console.log(`定时更新已设置：每${UPDATE_INTERVAL_MINUTES}分钟执行，首次延迟${CONFIG.initialDelayMinutes}分钟`);
+  return true;
 }
 
 // 监听定时器
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name === CONFIG.alarmName) {
     console.log('执行定时更新...');
-    await updateCitations();
+    await updateCitations({ source: 'alarm' });
   }
 });
 
+async function initializeBackground(source) {
+  await restoreBadgeFromCache();
+
+  const alarmActive = await setupAlarm();
+
+  if (alarmActive) {
+    await maybeRunInitialUpdate(source);
+  }
+}
+
+async function maybeRunInitialUpdate(source) {
+  try {
+    const { lastUpdate } = await chrome.storage.local.get(['lastUpdate']);
+
+    if (!lastUpdate || Date.now() - lastUpdate > CONFIG.maxCacheAgeMs) {
+      console.log('缓存已过期或不存在，执行初始更新');
+      await updateCitations({ source });
+    } else {
+      console.log('缓存仍然有效，跳过初始更新');
+    }
+  } catch (error) {
+    console.error('初始更新检查失败:', error);
+  }
+}
+
+async function restoreBadgeFromCache() {
+  try {
+    const { citationData } = await chrome.storage.local.get(['citationData']);
+
+    if (citationData && typeof citationData.citations === 'number') {
+      await updateBadge(citationData.citations);
+    } else {
+      await chrome.action.setBadgeText({ text: '' });
+    }
+  } catch (error) {
+    console.error('恢复Badge失败:', error);
+  }
+}
+
 // 更新引用数据
-async function updateCitations() {
+async function updateCitations({ source = 'manual' } = {}) {
   try {
     // 获取设置
-    const settings = await chrome.storage.sync.get(['scholarId', 'scholarUrl', 'enableNotifications']);
+    const settings = await chrome.storage.sync.get(['scholarId', 'scholarUrl', 'enableNotifications', 'autoUpdate']);
+
+    if (source === 'alarm' && settings.autoUpdate === false) {
+      console.log('自动更新已关闭，跳过本次定时更新');
+      return;
+    }
     
     if (!settings.scholarId && !settings.scholarUrl) {
       console.log('未设置Scholar ID，跳过更新');
@@ -74,7 +134,7 @@ async function updateCitations() {
       
       // 更新badge
       await updateBadge(newData.citations);
-      
+
       // 检查是否有变化并发送通知
       if (settings.enableNotifications && oldData.citationData) {
         checkAndNotify(oldData.citationData, newData);
@@ -222,11 +282,20 @@ function checkAndNotify(oldData, newData) {
 // 监听来自popup的消息
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'forceUpdate') {
-    updateCitations().then(() => {
+    updateCitations({ source: 'popup' }).then(() => {
       sendResponse({ success: true });
     }).catch(error => {
       sendResponse({ success: false, error: error.message });
     });
     return true; // 保持消息通道开放
+  }
+
+  if (request.action === 'settingsUpdated') {
+    initializeBackground('settingsUpdated').then(() => {
+      sendResponse({ success: true });
+    }).catch(error => {
+      sendResponse({ success: false, error: error.message });
+    });
+    return true;
   }
 });
