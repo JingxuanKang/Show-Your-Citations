@@ -1,17 +1,16 @@
 {
   "manifest_version": 3,
   "name": "Show Your Citations",
-  "version": "1.1.2",
-  "description": "Real-time Google Scholar citation tracker with beautiful UI",
+  "version": "2.0.0",
+  "description": "Track your Google Scholar citations, h-index and i10-index from the toolbar — works in mainland China via a Cloudflare Worker proxy.",
   "permissions": [
     "storage",
-    "alarms"
-  ],
-  "host_permissions": [
-    "https://scholar.google.com/*"
+    "alarms",
+    "notifications"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   },
   "action": {
     "default_popup": "popup.html",

@@ -1,68 +1,80 @@
 <!DOCTYPE html>
-<html lang="zh-CN" style="width: 350px; height: 320px;">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Google Scholar 引用追踪器</title>
+  <title>Show Your Citations</title>
   <link rel="stylesheet" href="styles.css">
-  <style>
-    body {
-      width: 350px;
-      height: 320px;
-      overflow: hidden;
-    }
-  </style>
 </head>
 <body>
-  <div class="container" id="mainContainer">
-    <!-- 头部 -->
-    <div class="header">
-      <h1>Scholar Citations</h1>
-      <button id="settingsBtn" class="icon-btn" title="设置">⚙️</button>
-    </div>
-
-    <!-- 主卡片 - 引用数 -->
-    <div class="citation-card main-card">
-      <div class="card-label">总引用数</div>
-      <div id="totalCitations" class="citation-number">--</div>
-      <div class="citation-change" id="citationChange"></div>
-    </div>
-
-    <!-- 次要指标 -->
-    <div class="metrics-row">
-      <div class="citation-card metric-card">
-        <div class="card-label">h-index</div>
-        <div id="hIndex" class="metric-number">--</div>
+  <main class="app" id="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">“</span>
+        <div class="brand-text">
+          <h1>Citations</h1>
+          <p id="profileName" class="profile-name"></p>
+        </div>
       </div>
-      <div class="citation-card metric-card">
-        <div class="card-label">i10-index</div>
-        <div id="i10Index" class="metric-number">--</div>
+      <button id="settingsBtn" class="icon-btn" title="Settings" aria-label="Settings">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 15.5A3.5 3.5 0 1 1 15.5 12 3.5 3.5 0 0 1 12 15.5m7.4-2.6a7.6 7.6 0 0 0 0-1.8l2-1.6a.5.5 0 0 0 .1-.6l-1.9-3.3a.5.5 0 0 0-.6-.2l-2.4 1a7 7 0 0 0-1.5-.9l-.4-2.5a.5.5 0 0 0-.5-.4h-3.8a.5.5 0 0 0-.5.4l-.4 2.5a7 7 0 0 0-1.5.9l-2.4-1a.5.5 0 0 0-.6.2L2.2 8.3a.5.5 0 0 0 .1.6l2 1.6a7.6 7.6 0 0 0 0 1.8l-2 1.6a.5.5 0 0 0-.1.6l1.9 3.3a.5.5 0 0 0 .6.2l2.4-1a7 7 0 0 0 1.5.9l.4 2.5a.5.5 0 0 0 .5.4h3.8a.5.5 0 0 0 .5-.4l.4-2.5a7 7 0 0 0 1.5-.9l2.4 1a.5.5 0 0 0 .6-.2l1.9-3.3a.5.5 0 0 0-.1-.6z"/></svg>
+      </button>
+    </header>
+
+    <!-- Main stats -->
+    <section id="stats" class="stats">
+      <div class="hero">
+        <div class="hero-value" id="totalCitations">—</div>
+        <div class="hero-label">Total citations</div>
+        <div class="hero-delta" id="citationDelta"></div>
       </div>
+
+      <div class="metrics">
+        <div class="metric">
+          <div class="metric-value" id="hIndex">—</div>
+          <div class="metric-label">h-index</div>
+        </div>
+        <div class="metric">
+          <div class="metric-value" id="i10Index">—</div>
+          <div class="metric-label">i10-index</div>
+        </div>
+      </div>
+
+      <div class="since" id="sinceRow" hidden>
+        <span id="sinceLabel">Since</span>
+        <span class="since-nums">
+          <b id="citationsSince">—</b> cites ·
+          <b id="hIndexSince">—</b> h ·
+          <b id="i10IndexSince">—</b> i10
+        </span>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <span id="lastUpdate" class="last-update">—</span>
+      <button id="refreshBtn" class="refresh-btn" title="Refresh now" aria-label="Refresh">
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12 5V2L8 6l4 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7"/></svg>
+      </button>
+    </footer>
+
+    <!-- Loading -->
+    <div id="loadingOverlay" class="overlay hidden">
+      <div class="spinner" aria-hidden="true"></div>
+      <p>Fetching…</p>
     </div>
 
-    <!-- 更新信息 -->
-    <div class="update-info">
-      <span id="lastUpdate">从未更新</span>
-      <button id="refreshBtn" class="refresh-btn" title="立即刷新">🔄</button>
+    <!-- Status / error toast -->
+    <div id="statusMsg" class="toast hidden" role="status"></div>
+
+    <!-- First-run / not-configured -->
+    <div id="setupPrompt" class="setup hidden">
+      <p class="setup-emoji">👋</p>
+      <p class="setup-title" id="setupTitle">Let's get set up</p>
+      <p class="setup-body" id="setupBody">Add your Google Scholar profile and proxy endpoint to start tracking.</p>
+      <button id="setupBtn" class="primary-btn">Open settings</button>
     </div>
+  </main>
 
-    <!-- 加载状态 -->
-    <div id="loadingOverlay" class="loading-overlay hidden">
-      <div class="spinner"></div>
-      <div class="loading-text">获取数据中...</div>
-    </div>
-
-    <!-- 错误提示 -->
-    <div id="errorMsg" class="error-msg hidden"></div>
-
-    <!-- 初次使用提示 -->
-    <div id="setupPrompt" class="setup-prompt hidden">
-      <p>👋 欢迎使用！</p>
-      <p>请先设置您的 Google Scholar ID</p>
-      <button id="setupBtn" class="primary-btn">前往设置</button>
-    </div>
-  </div>
-
-  <script src="popup.js"></script>
+  <script type="module" src="popup.js"></script>
 </body>
 </html>

@@ -1,77 +1,80 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>设置 - Google Scholar 引用追踪器</title>
+  <title>Show Your Citations — Settings</title>
   <link rel="stylesheet" href="options.css">
 </head>
 <body>
   <div class="container">
     <header>
-      <h1>⚙️ 设置</h1>
-      <p>配置您的 Google Scholar 信息</p>
+      <h1><span class="quote">“</span> Show Your Citations</h1>
+      <p>Track your Google Scholar metrics from the toolbar.</p>
     </header>
 
-    <div class="settings-card">
-      <h2>Scholar 配置</h2>
-      
-      <div class="form-group">
-        <label for="scholarUrl">Google Scholar 个人主页 URL</label>
-        <input type="url" id="scholarUrl" placeholder="https://scholar.google.com/citations?user=XXXXXXX">
-        <small>在 Google Scholar 上打开您的个人主页，复制地址栏中的完整 URL</small>
+    <section class="card">
+      <h2>Scholar profile</h2>
+      <div class="field">
+        <label for="scholarUrl">Google Scholar profile URL</label>
+        <input type="url" id="scholarUrl"
+               placeholder="https://scholar.google.com/citations?user=XXXXXXXX">
+        <small>Open your profile on Google Scholar and paste the full address.</small>
       </div>
-
-      <div class="divider">或者</div>
-
-      <div class="form-group">
-        <label for="scholarId">Scholar User ID</label>
-        <input type="text" id="scholarId" placeholder="例如：DhtAFkwAAAAJ">
-        <small>URL 中 user= 后面的字符串</small>
+      <div class="divider"><span>or</span></div>
+      <div class="field">
+        <label for="scholarId">Scholar user id</label>
+        <input type="text" id="scholarId" placeholder="e.g. DhtAFkwAAAAJ">
+        <small>The token after <code>user=</code> in the URL.</small>
       </div>
-    </div>
+    </section>
 
-
-    <div class="settings-card">
-      <h2>通知设置</h2>
-      
-      <div class="form-group checkbox-group">
-        <label>
-          <input type="checkbox" id="enableNotifications" checked>
-          <span>启用桌面通知</span>
-        </label>
-        <small>当引用数增加时显示通知</small>
+    <section class="card">
+      <h2>Proxy endpoint</h2>
+      <div class="field">
+        <label for="apiBase">Cloudflare Worker URL</label>
+        <input type="url" id="apiBase"
+               placeholder="https://scholar.example.com">
+        <small>
+          Fetches happen server-side at Cloudflare's edge, so this works in
+          mainland China without a VPN and avoids Scholar's bot checks.
+          Deploy your own in minutes — see
+          <a href="https://github.com/JingxuanKang/Show-Your-Citations/blob/main/Deploy.md"
+             target="_blank" rel="noreferrer">Deploy.md</a>.
+        </small>
       </div>
+    </section>
 
-      <div class="form-group checkbox-group">
-        <label>
-          <input type="checkbox" id="autoUpdate" checked>
-          <span>自动更新数据</span>
-        </label>
-        <small>每6小时自动检查更新</small>
-      </div>
-    </div>
+    <section class="card">
+      <h2>Behaviour</h2>
+      <label class="check">
+        <input type="checkbox" id="enableNotifications" checked>
+        <span>Desktop notifications when citations increase</span>
+      </label>
+      <label class="check">
+        <input type="checkbox" id="autoUpdate" checked>
+        <span>Auto-refresh every 6 hours</span>
+      </label>
+    </section>
 
-    <div class="button-group">
-      <button id="saveBtn" class="btn btn-primary">保存设置</button>
-      <button id="testBtn" class="btn btn-secondary">测试连接</button>
-      <button id="clearCacheBtn" class="btn btn-secondary">清理缓存</button>
+    <div class="actions">
+      <button id="saveBtn" class="btn btn-primary">Save</button>
+      <button id="testBtn" class="btn btn-ghost">Test connection</button>
+      <button id="clearCacheBtn" class="btn btn-ghost">Clear cache</button>
     </div>
 
     <div id="message" class="message hidden"></div>
 
-    <div class="footer">
-      <h3>使用说明</h3>
+    <footer class="help">
+      <h3>How to find your Scholar id</h3>
       <ol>
-        <li>打开 <a href="https://scholar.google.com" target="_blank">Google Scholar</a></li>
-        <li>搜索并进入您的个人主页</li>
-        <li>复制地址栏中的完整 URL</li>
-        <li>粘贴到上方的输入框中</li>
-        <li>点击"保存设置"</li>
+        <li>Open <a href="https://scholar.google.com" target="_blank" rel="noreferrer">Google Scholar</a> and go to your profile.</li>
+        <li>Copy the full URL — it contains <code>user=YOUR_ID</code>.</li>
+        <li>Paste it above; the id is filled in automatically.</li>
       </ol>
-    </div>
+    </footer>
   </div>
 
-  <script src="options.js"></script>
+  <script type="module" src="options.js"></script>
 </body>
 </html>

@@ -1,173 +1,134 @@
-# Show Your Citations 📚 | 展示你的学术引用
+# Show Your Citations 📚
 
-[English](#english) | [中文](#chinese)
+[English](#english) · [中文](#中文)
+
+A Chrome extension that shows your **Google Scholar** citations, **h-index** and
+**i10-index** in the toolbar. Fetching runs through a small **Cloudflare Worker**
+proxy, so it works in **mainland China without a VPN** and sidesteps Google
+Scholar's bot checks.
+
+![version](https://img.shields.io/badge/version-2.0.0-2f5de3)
+![manifest](https://img.shields.io/badge/Manifest-V3-green)
+![license](https://img.shields.io/badge/license-MIT-8250df)
 
 ---
 
 <a name="english"></a>
 ## English
 
-A beautiful Chrome extension that displays your Google Scholar citations in real-time with an elegant glass-morphism UI.
+### How it works
 
-![Version](https://img.shields.io/badge/version-1.1.2-blue)
-![Chrome](https://img.shields.io/badge/Chrome-Extension-green)
-![License](https://img.shields.io/badge/license-MIT-purple)
-
-### ✨ Features
-
-- 📊 **Real-time Citation Tracking** - Display total citations, h-index, and i10-index
-- 🎨 **Beautiful Glass-morphism UI** - Modern purple gradient design
-- 🔄 **Auto-update** - Automatically checks for updates every 6 hours
-- 💾 **Smart Caching** - Fast loading with intelligent cache management
-- 🌍 **Works Globally** - Direct access to Google Scholar
-- 📈 **Citation Badge** - Shows citation count directly on the extension icon
-- 🔔 **Desktop Notifications** - Get notified when your citations increase
-
-### 🚀 Quick Start
-
-#### Method 1: Download Release (Easiest)
-1. **Download the latest release**
-   - Go to [Releases](https://github.com/JingxuanKang/Show-Your-Citations/releases)
-   - Download the latest `show-your-citations-v*.zip`
-
-2. **Install in Chrome**
-   - Open `chrome://extensions/`
-   - Enable **Developer mode**
-   - Drag and drop the `.zip` file directly onto the page
-   - Or unzip and click **Load unpacked** to select the folder
-
-3. **Setup**
-   - Click the extension icon
-   - Enter your Google Scholar profile URL
-   - Save and enjoy!
-
-#### Method 2: Clone Repository
-```bash
-git clone https://github.com/JingxuanKang/Show-Your-Citations.git
-cd Show-Your-Citations
 ```
-Then load as unpacked extension in Chrome.
+Extension  ──HTTPS──▶  Cloudflare Worker  ──▶  scholar.google.com
+(popup / SW)           (edge, outside GFW)      parse stats server-side
+     ▲                        │
+     └────────  JSON  ◀───────┘   { citations, h-index, i10-index, … }
+```
 
+The extension never talks to Google Scholar directly. It calls your Worker,
+which fetches and parses the profile at Cloudflare's edge and returns clean
+JSON. That single indirection buys three things:
 
-### 📁 Project Structure
+- **Works in China** — the edge fetch happens outside the firewall.
+- **No CAPTCHA walls** — Scholar sees a server, not a spray of browser requests,
+  and results are edge-cached for an hour.
+- **One place to fix** — when Scholar tweaks its markup, only `cloudflare/worker.js`
+  changes, not the shipped extension.
+
+### Features
+
+- 📊 Total citations, h-index, i10-index — with the **Since &lt;year&gt;** figures too
+- 🔢 Live citation count on the toolbar badge
+- 🔔 Desktop notification when your citations or h-index go up
+- 🔄 Auto-refresh every 6 hours, with instant cached display on open
+- 🌍 China-friendly via your own Cloudflare Worker
+- 🎨 Clean light/dark UI that follows your system theme
+
+### Install
+
+1. **Deploy the proxy** (once) — see **[Deploy.md](Deploy.md)**. Takes ~3 minutes
+   with `wrangler`.
+2. **Load the extension**
+   - Grab the latest `show-your-citations-v*.zip` from
+     [Releases](https://github.com/JingxuanKang/Show-Your-Citations/releases),
+     **or** clone this repo.
+   - Open `chrome://extensions/`, enable **Developer mode**, click
+     **Load unpacked**, and select the folder (or drag the zip in).
+3. **Configure** — click the icon → **Open settings**:
+   - Paste your Google Scholar profile URL (the id is extracted automatically).
+   - Paste your Worker URL as the **Proxy endpoint**.
+   - Hit **Test connection**, then **Save**.
+
+### Project layout
+
 ```
 Show-Your-Citations/
-├── manifest.json          # Extension configuration
-├── popup.html/js/css      # Main UI
-├── background.js          # Auto-update service
-├── options.html/js/css    # Settings page
-└── icons/                # Extension icons
+├── manifest.json         # MV3 config
+├── popup.html/.js        # toolbar UI
+├── options.html/.js      # settings
+├── background.js         # service worker: schedule, badge, notifications
+├── styles.css/options.css
+├── lib/api.js            # shared config + fetch + parsing (ES module)
+├── cloudflare/           # the Worker proxy (worker.js + wrangler.toml)
+├── tools/                # icon generator
+├── icons/
+├── Deploy.md             # how to deploy the Worker
+└── package.sh            # build a release zip
 ```
 
-### 📝 Changelog
+### Contributing
 
-**v1.1.2** (Latest)
-- Added success notification when manually refreshing data
-- Improved error handling and user feedback
-- Fixed loading spinner issues
+Issues and PRs welcome. The parsing logic that most often needs love is in
+`cloudflare/worker.js`.
 
-**v1.1.0**
-- Simplified to direct Google Scholar access
-- Removed proxy server dependencies
-- Improved connection stability
+### License
 
-**v1.0.0**
-- Initial release with glass-morphism UI
-- Real-time citation tracking
-- Auto-update every 6 hours
-
-### 🤝 Contributing
-
-Contributions are welcome! Feel free to submit issues and pull requests.
-
-### 📄 License
-
-MIT License - see [LICENSE](LICENSE) file for details.
+MIT — see [LICENSE](LICENSE).
 
 ---
 
-<a name="chinese"></a>
+<a name="中文"></a>
 ## 中文
 
-一个美观的Chrome扩展，实时显示你的Google Scholar引用数据，采用优雅的玻璃拟态UI设计。
+一个在工具栏显示 **Google Scholar** 引用数、**h 指数**、**i10 指数** 的 Chrome 扩展。
+数据抓取经由一个轻量 **Cloudflare Worker** 代理完成，因此**在中国大陆免梯子可用**，
+也绕开了 Google Scholar 的反爬验证。
 
-![版本](https://img.shields.io/badge/版本-1.1.2-blue)
-![Chrome扩展](https://img.shields.io/badge/Chrome-扩展-green)
-![许可证](https://img.shields.io/badge/许可证-MIT-purple)
+### 工作原理
 
-### ✨ 功能特点
-
-- 📊 **实时引用追踪** - 显示总引用数、h指数和i10指数
-- 🎨 **精美玻璃拟态UI** - 现代紫色渐变设计
-- 🔄 **自动更新** - 每6小时自动检查更新
-- 💾 **智能缓存** - 快速加载，智能缓存管理
-- 🌍 **全球可用** - 直接访问Google Scholar
-- 📈 **引用数徽章** - 在扩展图标上直接显示引用数
-- 🔔 **桌面通知** - 引用增加时获得通知
-
-### 🚀 快速开始
-
-#### 方法1：下载发布版（最简单）
-1. **下载最新版本**
-   - 访问 [Releases](https://github.com/JingxuanKang/Show-Your-Citations/releases)
-   - 下载最新的 `show-your-citations-v*.zip`
-
-2. **安装到Chrome**
-   - 打开 `chrome://extensions/`
-   - 启用**开发者模式**
-   - 直接拖拽 `.zip` 文件到页面上
-   - 或解压后点击**加载已解压的扩展程序**选择文件夹
-
-3. **设置**
-   - 点击扩展图标
-   - 输入你的Google Scholar个人主页URL
-   - 保存并使用！
-
-#### 方法2：克隆仓库
-```bash
-git clone https://github.com/JingxuanKang/Show-Your-Citations.git
-cd Show-Your-Citations
 ```
-然后在Chrome中加载为已解压的扩展程序。
-
-
-### 📁 项目结构
-```
-Show-Your-Citations/
-├── manifest.json          # 扩展配置
-├── popup.html/js/css      # 主界面
-├── background.js          # 自动更新服务
-├── options.html/js/css    # 设置页面
-└── icons/                # 扩展图标
+扩展 ──HTTPS──▶ Cloudflare Worker（边缘，墙外）──▶ scholar.google.com
+ ▲                     │  服务端抓取 + 解析
+ └──────  JSON  ◀───────┘  { 引用数, h-index, i10-index, … }
 ```
 
-### 📝 更新日志
+扩展本身从不直接访问 Google Scholar，而是调用你的 Worker，由它在 Cloudflare 边缘
+抓取并解析主页，返回干净 JSON。这一层带来三个好处：
 
-**v1.1.2** (最新版)
-- 手动刷新时添加成功提示
-- 改进错误处理和用户反馈
-- 修复加载动画问题
+- **中国可用**——抓取发生在墙外的边缘节点；
+- **不撞验证码**——Scholar 看到的是一台服务器，结果还有 1 小时边缘缓存；
+- **只改一处**——Scholar 改版时只需改 `cloudflare/worker.js`，不必重发扩展。
 
-**v1.1.0**
-- 简化为直接访问Google Scholar
-- 移除代理服务器依赖
-- 提高连接稳定性
+### 功能
 
-**v1.0.0**
-- 初始版本，玻璃拟态UI设计
-- 实时引用追踪
-- 每6小时自动更新
+- 📊 总引用数、h 指数、i10 指数，附 **Since &lt;年份&gt;** 分列数据
+- 🔢 工具栏图标徽章实时显示引用数
+- 🔔 引用数 / h 指数上升时桌面通知
+- 🔄 每 6 小时自动刷新，打开即显示缓存
+- 🌍 通过你自己的 Cloudflare Worker 实现大陆可用
+- 🎨 跟随系统的明暗双主题
 
-### 🤝 贡献
+### 安装
 
-欢迎贡献！请随时提交问题和拉取请求。
+1. **部署代理**（一次性）——见 **[Deploy.md](Deploy.md)**，用 `wrangler` 约 3 分钟。
+2. **加载扩展**：从 [Releases](https://github.com/JingxuanKang/Show-Your-Citations/releases)
+   下载 zip 或克隆本仓库 → `chrome://extensions/` 开启**开发者模式** → **加载已解压的扩展程序**。
+3. **配置**：点图标 → 打开设置 → 填 Scholar 主页 URL + Worker 地址 → **测试连接** → **保存**。
 
-### 📄 许可证
+### 许可证
 
-MIT许可证 - 详见[LICENSE](LICENSE)文件。
+MIT，详见 [LICENSE](LICENSE)。
 
 ---
 
-⭐ **If you find this useful, please star the repository! | 如果觉得有用，请给仓库加星！**
-
-Made with ❤️ for researchers worldwide | 为全球研究者用心打造
+⭐ Useful? Star the repo. Made for researchers who like watching the number go up.
