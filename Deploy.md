@@ -1,32 +1,47 @@
-# Deploy the Scholar proxy (Cloudflare Worker)
+# Deploy the Scholar proxy
 
-The extension needs one small Worker running in your own Cloudflare account. It
-fetches your Google Scholar profile at the edge and returns JSON. Deploying it
-takes a few minutes and stays within Cloudflare's free tier.
+The extension needs a small proxy service that fetches your Google Scholar
+profile server-side and returns JSON. You run it yourself and point the
+extension at it (the **Proxy endpoint** field in settings).
 
-## Prerequisites
+## Why a server (and not a Cloudflare Worker)
 
-- A free [Cloudflare account](https://dash.cloudflare.com/sign-up).
-- Node.js 18+ (for `wrangler`, Cloudflare's CLI).
+Google Scholar **returns HTTP 403 to datacenter IPs it distrusts — including
+Cloudflare Workers' shared edge IPs** — so a pure Worker cannot fetch Scholar.
+A normal VPS IP is almost always fine. So the proxy is a tiny standalone HTTP
+server; put Cloudflare *in front of it* (optional) for CDN caching and
+mainland-China reachability, but the fetch itself must originate from a
+non-blocked IP.
 
-## Deploy
+Pick a host whose IP Scholar does not block: any small VPS (tested working on
+Oracle Cloud, and most providers), or an always-on machine of your own.
+
+## Run it
+
+### Option A — Docker (recommended)
 
 ```bash
-cd cloudflare
-npx wrangler login        # opens a browser to authorize
-npx wrangler deploy       # publishes worker.js
+cd server
+docker build -t scholar-proxy .
+docker run -d --restart unless-stopped -p 8080:8080 --name scholar-proxy scholar-proxy
 ```
 
-`wrangler` prints the deployed URL, e.g.
-`https://scholar-proxy.<your-subdomain>.workers.dev`.
+### Option B — Node directly
+
+```bash
+cd server
+node server.js          # listens on :8080  (PORT=9000 node server.js to change)
+```
+
+Keep it alive with your process manager of choice (systemd, pm2, …).
 
 ## Verify
 
 ```bash
-curl "https://scholar-proxy.<your-subdomain>.workers.dev/?user=YOUR_SCHOLAR_ID"
+curl "http://YOUR_HOST:8080/?user=YOUR_SCHOLAR_ID"
 ```
 
-You should get JSON like:
+Expected:
 
 ```json
 {
@@ -41,37 +56,30 @@ You should get JSON like:
 
 Put that base URL into the extension's **Proxy endpoint** field.
 
-## Mainland-China reachability — use a custom domain
+## Front it with Cloudflare (optional, for China + caching)
 
-`*.workers.dev` is frequently polluted or blocked by the GFW, so the default
-subdomain may be unreliable inside China. Bind the Worker to a domain in your
-own Cloudflare zone instead:
+A raw `http://ip:8080` works but has no TLS, no CDN, and may be unreachable from
+mainland China. Front the server with a Cloudflare-proxied hostname:
 
-1. Add your domain to Cloudflare (nameservers pointed at Cloudflare).
-2. In `wrangler.toml`, set a custom-domain route:
+- **Cloudflare Tunnel** — run `cloudflared` on the same host and route a
+  hostname (e.g. `scholar.example.com`) to `http://localhost:8080`. No open
+  ports, automatic TLS.
+- **Proxied DNS** — point an orange-clouded `A`/`CNAME` record at the host and
+  put the server behind TLS.
 
-   ```toml
-   routes = [
-     { pattern = "scholar.example.com", custom_domain = true }
-   ]
-   ```
+Because the server sends `Cache-Control: public, max-age=3600`, Cloudflare
+edge-caches each profile for an hour, so repeated opens are fast and Scholar is
+hit at most once per hour per profile. A domain fronted by Cloudflare's anycast
+network is also far more reliably reachable from China than a bare IP.
 
-3. `npx wrangler deploy` again, then use `https://scholar.example.com` as the
-   proxy endpoint.
-
-A domain fronted by Cloudflare's anycast network is far more reliably reachable
-from China than a raw `workers.dev` host.
+Then use `https://scholar.example.com` as the proxy endpoint.
 
 ## Notes & limits
 
-- **Caching**: responses are edge-cached for 1 hour (`EDGE_CACHE_SECONDS` in
-  `worker.js`) and the upstream Scholar HTML for 15 minutes, so repeated opens
-  cost almost nothing and keep Scholar happy.
-- **Rate limits**: for personal use this stays well under Cloudflare's free
-  100k requests/day. If many people share one Worker, Scholar may occasionally
-  return a CAPTCHA to the edge IP — the Worker reports this as HTTP 429 and the
+- **Caching**: 1h in-memory in the server (`CACHE_TTL_MS`) plus Cloudflare edge
+  cache if fronted, so Scholar sees minimal traffic.
+- **Rate limits**: if a shared endpoint fetches many profiles, Scholar may
+  occasionally CAPTCHA the IP — the server reports this as HTTP 429 and the
   extension shows "try again shortly".
-- **Privacy**: the Worker only ever sees the Scholar ids it is asked to fetch.
-  It stores nothing.
-- **Updating**: change `worker.js`, run `npx wrangler deploy` again. The shipped
-  extension does not need to be rebuilt for proxy-side fixes.
+- **Privacy**: the server only ever sees the Scholar ids it is asked to fetch;
+  it stores nothing on disk.

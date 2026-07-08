@@ -1,0 +1,14 @@
+{
+  "name": "scholar-proxy",
+  "version": "2.0.0",
+  "description": "Portable Google Scholar citation proxy for the Show Your Citations extension",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}

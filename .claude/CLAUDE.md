@@ -1,18 +1,19 @@
 # Show Your Citations — agent notes
 
 Chrome MV3 extension that shows Google Scholar citations / h-index / i10-index in
-the toolbar, fetching through a Cloudflare Worker proxy so it works in mainland
-China without a VPN.
+the toolbar, fetching through a self-hosted proxy service (optionally fronted by
+Cloudflare) so it works in mainland China without a VPN.
 
 ## Architecture (the one thing to understand)
 
 The extension **never fetches scholar.google.com directly**. It calls a
-Cloudflare Worker, which does the fetch + parse at the edge and returns JSON.
+**proxy server** the user runs, which does the fetch + parse and returns JSON.
 
-- `cloudflare/worker.js` — the proxy. Parses Scholar's stats table with
-  **HTMLRewriter** (`td.gsc_rsb_std` cells, in order: citations/h/i10 × all/since;
-  name from `#gsc_prf_in`; "Since YYYY" from `th.gsc_rsb_sth`). Edge-caches 1h.
-  **This is the single source of parsing** — when Scholar changes markup, fix here.
+- `server/server.js` — the portable proxy (zero-dep Node http). Fetches the
+  profile and regex-parses the stats table (`td.gsc_rsb_std` cells in order:
+  citations/h/i10 × all/since; name from `#gsc_prf_in`; "Since YYYY"). 1h
+  in-memory cache. **Single source of parsing** — Scholar markup change → fix here.
+  Ships with a Dockerfile; anyone can `docker run` it on a non-blocked VPS.
 - `lib/api.js` — shared ES module (config, `fetchCitations`, normalize, badge
   text). Imported by popup, background, and options.
 - `background.js` — module service worker: 6h alarm, badge, notifications.
@@ -20,11 +21,15 @@ Cloudflare Worker, which does the fetch + parse at the edge and returns JSON.
 
 ## Red lines
 
+- **Google Scholar 403s Cloudflare Workers' shared edge IPs** — a pure Worker
+  CANNOT fetch Scholar. The proxy must run on a normal (non-blocked) server IP;
+  Cloudflare may only sit *in front* (cache/China reach), never do the fetch.
+  (An earlier `cloudflare/worker.js` was removed for exactly this reason.)
 - **Never fetch Scholar from the extension client** — it breaks China users and
-  hits CAPTCHAs. All fetching goes through the Worker.
+  hits CAPTCHAs. All fetching goes through the proxy server.
 - **Proxy endpoint is user-configured** (`apiBase` in `chrome.storage.sync`).
-  Don't hardcode a personal Worker URL into shipped code; `DEFAULT_API_BASE` in
-  `lib/api.js` stays empty unless deliberately shipping a default.
+  Don't hardcode a personal server URL into shipped code; `DEFAULT_API_BASE` in
+  `lib/api.js` stays empty so installs don't hammer one person's server.
 - **No fabricated git history.** A `create_commit_history.sh` that backdated fake
   empty commits was removed — do not reintroduce anything like it. Commit real
   work with real timestamps.
@@ -37,10 +42,12 @@ Cloudflare Worker, which does the fetch + parse at the edge and returns JSON.
 - Service worker + popup + options are all ES modules (`"type":"module"`); use
   relative imports from `lib/`.
 - Manifest declares `notifications` permission — required for the notify path.
-- No `host_permissions` needed: the Worker returns `Access-Control-Allow-Origin: *`.
+- No `host_permissions` needed: the proxy returns `Access-Control-Allow-Origin: *`.
 - Badge formatting lives in `badgeText()` (M before k ordering — do not reorder).
+- `server/server.js` uses regex parsing (no HTMLRewriter — that's Workers-only);
+  keep it dependency-free so `docker run` / `node server.js` just works.
 
 ## Docs routing
 
-"What is it / how to use" → README.md. "How to deploy the Worker / fix China
-access / caching" → Deploy.md. Architecture / red lines → this file.
+"What is it / how to use" → README.md. "How to deploy the proxy / front with
+Cloudflare / fix China access" → Deploy.md. Architecture / red lines → this file.
