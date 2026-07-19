@@ -24,15 +24,13 @@ The extension **never fetches scholar.google.com directly**. It calls a
 - **Google Scholar 403s Cloudflare Workers' shared edge IPs** — a pure Worker
   CANNOT fetch Scholar. The proxy must run on a normal (non-blocked) server IP;
   Cloudflare may only sit *in front* (cache/China reach), never do the fetch.
-  (An earlier `cloudflare/worker.js` was removed for exactly this reason.)
 - **Never fetch Scholar from the extension client** — it breaks China users and
   hits CAPTCHAs. All fetching goes through the proxy server.
 - **Proxy endpoint is user-configured** (`apiBase` in `chrome.storage.sync`).
   Don't hardcode a personal server URL into shipped code; `DEFAULT_API_BASE` in
   `lib/api.js` stays empty so installs don't hammer one person's server.
-- **No fabricated git history.** A `create_commit_history.sh` that backdated fake
-  empty commits was removed — do not reintroduce anything like it. Commit real
-  work with real timestamps.
+- **No fabricated git history.** Never add scripts that backdate or fabricate
+  commits. Commit real work with real timestamps.
 - **No AI co-author trailers** in commit messages (per global rules).
 - Keep the UI light-first with real dark mode via `prefers-color-scheme`; no
   glassmorphism revival.

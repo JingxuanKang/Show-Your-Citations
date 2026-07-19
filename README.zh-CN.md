@@ -10,6 +10,7 @@
 [![Manifest](https://img.shields.io/badge/Chrome-Manifest%20V3-1e874b)](manifest.json)
 [![Proxy](https://img.shields.io/badge/proxy-Node%20·%20zero--dep-6f8cff)](server/)
 [![License](https://img.shields.io/badge/license-MIT-8250df)](LICENSE)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-c0392b)](CONTRIBUTING.md)
 
 <table>
   <tr>
@@ -77,6 +78,19 @@ docker run -d --restart unless-stopped -p 8080:8080 --name scholar-proxy scholar
 
 点**测试连接**→**保存**。搞定，引用数会出现在徽章上。
 
+## 配置参考
+
+所有设置都在选项页里，经 `chrome.storage.sync` 同步：
+
+| 设置项 | 默认值 | 说明 |
+| --- | --- | --- |
+| Scholar 主页 / id | — | 追踪哪个 profile |
+| 代理端点 | *(空)* | 你的代理服务基地址，必填 |
+| 桌面通知 | 开 | 引用数 / h 指数上升时通知 |
+| 自动刷新 | 开 | 后台每 6 小时刷新一次 |
+
+发布的扩展**刻意不带默认端点**：每个人跑自己的代理，任何一台服务器都不必承担所有人的流量。
+
 ## 常见问题
 
 **真的能在大陆用吗？** 能——只要代理服务器在墙外、并用 Cloudflare 代理域名前置。
@@ -99,6 +113,34 @@ Scholar 一天最多看到几次请求。（别把很多用户指向同一台共
 `cd server && node server.js`；打发布包 `./package.sh`。Scholar 改版时最常要动的解析逻辑在
 [`server/server.js`](server/server.js)。
 
-## 贡献 & 许可证
+## 项目结构
 
-欢迎 issue / PR，见 [CONTRIBUTING.md](CONTRIBUTING.md)。许可证 [MIT](LICENSE) © Jingxuan Kang。
+```
+Show-Your-Citations/
+├── manifest.json          # MV3 配置
+├── popup.html · popup.js  # 工具栏 UI
+├── options.html · .js     # 设置页
+├── background.js          # service worker：定时、徽章、通知
+├── styles.css · options.css
+├── lib/api.js             # 共享配置 + 抓取 + 解析（ES module）
+├── server/                # 可移植代理：server.js + Dockerfile
+├── tools/                 # 图标生成器
+├── icons/ · docs/
+├── Deploy.md              # 代理部署与自托管
+├── CONTRIBUTING.md
+└── package.sh             # 打发布 zip
+```
+
+## 贡献
+
+欢迎 issue / PR，见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+
+## 许可证
+
+[MIT](LICENSE) © Jingxuan Kang
+
+---
+
+<div align="center">
+<sub>与 Google Scholar 无关联。为爱看数字上涨的科研人而做。觉得有用就点个 ⭐。</sub>
+</div>
