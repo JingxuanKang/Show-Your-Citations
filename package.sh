@@ -1,6 +1,6 @@
 #!/bin/bash
 # Package the Chrome extension into a zip for a GitHub Release.
-# The Cloudflare Worker (cloudflare/), tooling (tools/) and docs are excluded.
+# The backend server (server/), tooling (tools/) and docs are excluded.
 set -euo pipefail
 cd "$(dirname "$0")"
 
